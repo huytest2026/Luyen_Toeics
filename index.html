@@ -4,16 +4,19 @@
   <base target="_top">
   <meta charset="utf-8">
   <title>Hệ Thống Quản Lý Ca Trực & Sự Cố Cáp Quang</title>
+  
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <!-- Thư viện PageFlip cho Sổ điện tử -->
   <script src="https://cdn.jsdelivr.net/npm/page-flip@2.0.7/dist/js/page-flip.browser.js"></script>
 
   <style>
     body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background-color: #f4f6f9; color: #333; }
     .container { max-width: 1250px; margin: 0 auto; background: #fff; padding: 25px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
     
-    /* Tab Header styling */
     .tab-header { display: flex; border-bottom: 2px solid #ddd; margin-bottom: 25px; flex-wrap: wrap; gap: 5px; }
     .tab-btn { padding: 12px 20px; cursor: pointer; background: #e9ecef; border: none; border-top-left-radius: 6px; border-top-right-radius: 6px; font-weight: bold; font-size: 14px; color: #495057; outline: none; transition: all 0.2s; }
     .tab-btn.active { background: #1976d2; color: white; box-shadow: 0 -2px 5px rgba(0,0,0,0.1); }
@@ -26,38 +29,30 @@
     input, select, textarea { width: 100%; padding: 10px 12px; box-sizing: border-box; border: 1px solid #ced4da; border-radius: 4px; font-size: 14px; background: #fff; }
     input:focus, select:focus, textarea:focus { border-color: #1976d2; outline: none; box-shadow: 0 0 0 3px rgba(25,118,210,0.15); }
     
-    /* Khung đỏ cố định cho ghi chú */
-    .red-frame-cell { border: 2px solid #d32f2f !important; background-color: #fff8f8 !important; }
+    .select2-container .select2-selection--multiple {
+        min-height: 38px;
+        border: 1px solid #ced4da;
+        border-radius: 4px;
+        padding: 2px;
+    }
+    .select2-container--default.select2-container--focus .select2-selection--multiple {
+        border-color: #1976d2;
+    }
+
+    .red-frame-cell { border: 1px solid #ffe0b2 !important; background-color: #fffde7 !important; }
+    .notes-edit-box { margin-top: 20px; background: #fffde7; border: 1px solid #ffe0b2; padding: 15px; border-radius: 6px; }
     
     .btn-action { 
       background: linear-gradient(135deg, #1976d2, #1565c0); 
-      color: white; 
-      padding: 12px 28px; 
-      border: none; 
-      border-radius: 6px; 
-      cursor: pointer; 
-      font-weight: bold; 
-      font-size: 16px; 
-      box-shadow: 0 4px 8px rgba(25, 118, 210, 0.3); 
-      transition: all 0.25s ease;
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
+      color: white; padding: 12px 28px; border: none; border-radius: 6px; 
+      cursor: pointer; font-weight: bold; font-size: 16px; 
+      box-shadow: 0 4px 8px rgba(25, 118, 210, 0.3); transition: all 0.25s ease;
+      display: inline-flex; align-items: center; gap: 8px;
     }
-    .btn-action:hover { 
-      background: linear-gradient(135deg, #1565c0, #0d47a1); 
-      box-shadow: 0 6px 12px rgba(25, 118, 210, 0.4);
-      transform: translateY(-2px);
-    }
+    .btn-action:hover { background: linear-gradient(135deg, #1565c0, #0d47a1); box-shadow: 0 6px 12px rgba(25, 118, 210, 0.4); transform: translateY(-2px); }
 
-    .btn-success-action {
-      background: linear-gradient(135deg, #2e7d32, #1b5e20);
-      box-shadow: 0 4px 8px rgba(46, 125, 50, 0.3);
-    }
-    .btn-success-action:hover {
-      background: linear-gradient(135deg, #1b5e20, #103912);
-      box-shadow: 0 6px 12px rgba(46, 125, 50, 0.4);
-    }
+    .btn-success-action { background: linear-gradient(135deg, #2e7d32, #1b5e20); box-shadow: 0 4px 8px rgba(46, 125, 50, 0.3); }
+    .btn-success-action:hover { background: linear-gradient(135deg, #1b5e20, #103912); box-shadow: 0 6px 12px rgba(46, 125, 50, 0.4); }
 
     .header-box { border-bottom: 2px solid #eee; margin-bottom: 20px; padding-bottom: 8px; }
     .table-responsive { overflow-x: auto; margin-top: 15px; border-radius: 6px; border: 1px solid #e0e0e0; }
@@ -65,52 +60,29 @@
     th, td { border: 1px solid #e0e0e0; padding: 10px 12px; text-align: left; }
     th { background-color: #f8f9fa; color: #333; font-weight: bold; }
     tr:nth-child(even) { background-color: #fbfbfb; }
+
+    .phan-ca-table th { background-color: #fff9c4 !important; color: #5d4037 !important; border-color: #ffe0b2 !important; }
+    .phan-ca-table td { border-color: #ffe0b2 !important; }
+    .phan-ca-table tr:nth-child(even) { background-color: #fffde7 !important; }
+    .phan-ca-table tr:nth-child(odd) { background-color: #ffffff !important; }
+
     .loading { color: #1976d2; font-style: italic; font-weight: bold; padding: 10px 0; }
     .map-link { color: #1976d2; text-decoration: underline; cursor: pointer; font-weight: bold; }
     
-    #mapSuCoContainer { margin-top: 25px; display: none; }
-    #mapSuCo { height: 480px; width: 100%; border-radius: 6px; border: 1px solid #ccc; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
-    
-    #mapSoHoaContainer { margin-top: 25px; display: none; }
-    #mapSoHoa { height: 480px; width: 100%; border-radius: 6px; border: 1px solid #ccc; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+    #mapSuCoContainer, #mapSoHoaContainer { margin-top: 25px; display: none; }
+    #mapSuCo, #mapSoHoa { height: 480px; width: 100%; border-radius: 6px; border: 1px solid #ccc; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
     
     .map-label-tag { background: transparent !important; border: none !important; box-shadow: none !important; font-size: 13px; font-weight: bold; color: #d32f2f !important; white-space: nowrap; text-shadow: 1px 1px 2px #fff, -1px -1px 2px #fff, 1px -1px 2px #fff, -1px 1px 2px #fff; }
-    
     .checkbox-group { display: flex; align-items: center; gap: 10px; margin: 15px 0; background: #f8f9fa; padding: 12px 15px; border-radius: 6px; border: 1px solid #e9ecef; }
     .checkbox-group input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; }
     .checkbox-group label { margin-bottom: 0; cursor: pointer; font-weight: normal; font-size: 14px; }
 
-    /* Flipbook Styles */
     #flipbook-wrapper { display: flex; flex-direction: column; align-items: center; margin-top: 20px; }
     #book { background-color: #fdfdfd; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
-    
-    .page { 
-      background-color: #fff; 
-      color: #333; 
-      border: 1px solid #dcdcdc; 
-      padding: 18px 20px; 
-      box-sizing: border-box; 
-      overflow: hidden; 
-      display: flex; 
-      flex-direction: column; 
-      justify-content: space-between; 
-    }
-    
+    .page { background-color: #fff; color: #333; border: 1px solid #dcdcdc; padding: 18px 20px; box-sizing: border-box; overflow: hidden; display: flex; flex-direction: column; justify-content: space-between; }
     .page-cover { background: linear-gradient(135deg, #4a148c, #7b1fa2); color: white; text-align: center; justify-content: center; }
     .page h3 { color: #4a148c; border-bottom: 2px solid #7b1fa2; padding-bottom: 4px; margin-top: 0; margin-bottom: 10px; font-size: 15px; }
-    
-    .page-body { 
-      font-size: 12px; 
-      line-height: 1.4; 
-      color: #444; 
-      word-break: break-word; 
-      overflow-y: auto; 
-      max-height: 480px; 
-      padding-right: 4px; 
-    }
-    .page-body::-webkit-scrollbar { width: 4px; }
-    .page-body::-webkit-scrollbar-thumb { background: #ccc; border-radius: 4px; }
-
+    .page-body { font-size: 12px; line-height: 1.4; color: #444; word-break: break-word; overflow-y: auto; max-height: 480px; padding-right: 4px; }
     .page-footer { font-size: 11px; color: #888; text-align: right; border-top: 1px solid #eee; padding-top: 6px; margin-top: 5px; }
     .flip-controls { margin-top: 20px; display: flex; gap: 15px; align-items: center; }
   </style>
@@ -119,7 +91,8 @@
   <div class="container">
     <div class="tab-header">
       <button class="tab-btn active" onclick="openTab(event, 'tabPhanCa')">📅 PHÂN CA TRỰC</button>
-      <button class="tab-btn" onclick="openTab(event, 'tabGiaoCa')">📊 SỔ GIAO CA TRỰC</button>
+      <button class="tab-btn" onclick="openTab(event, 'tabTinhCong')">📊 TÍNH CÔNG TRỰC</button>
+      <button class="tab-btn" onclick="openTab(event, 'tabGiaoCa')">📑 SỔ GIAO CA TRỰC</button>
       <button class="tab-btn" onclick="openTab(event, 'tabSuCo')">⚡ TRA CỨU SỰ CỐ</button>
       <button class="tab-btn" onclick="openTab(event, 'tabSoHoa')">🌐 SỔ HÓA CÁP QUANG</button>
       <button class="tab-btn" onclick="openTab(event, 'tabVatTu')">📦 THEO DÕI VẬT TƯ</button>
@@ -144,7 +117,28 @@
       <div id="phanCaResult" style="margin-top: 20px;"></div>
     </div>
 
-    <!-- TAB 1: SỔ GIAO CA TRỰC -->
+    <!-- TAB 1: TÍNH CÔNG TRỰC -->
+    <div id="tabTinhCong" class="tab-content">
+      <div class="header-box">
+        <h2 style="color: #2e7d32; margin: 0;">THỐNG KÊ & TÍNH CÔNG NHÂN VIÊN</h2>
+      </div>
+      <div class="form-row" style="align-items: flex-end;">
+        <div class="form-group">
+          <label>Từ ngày:</label>
+          <input type="date" id="tcTuNgay">
+        </div>
+        <div class="form-group">
+          <label>Đến ngày:</label>
+          <input type="date" id="tcDenNgay">
+        </div>
+        <div class="form-group" style="display: flex; gap: 10px; align-items: flex-end;">
+          <button type="button" class="btn-action btn-success-action" onclick="loadBangTinhCong()">📊 Thống Kê Công</button>
+        </div>
+      </div>
+      <div id="tinhCongResult" style="margin-top: 20px;"></div>
+    </div>
+
+    <!-- TAB 2: SỔ GIAO CA TRỰC -->
     <div id="tabGiaoCa" class="tab-content">
       <div class="header-box">
         <h2 style="color: #1976d2; margin: 0;">NHẬT KÝ & BÀN GIAO CA TRỰC</h2>
@@ -193,7 +187,7 @@
       <div id="handoverResult" style="margin-top: 15px;"></div>
     </div>
 
-    <!-- TAB 2: TRA CỨU SỰ CỐ -->
+    <!-- TAB 3: TRA CỨU SỰ CỐ -->
     <div id="tabSuCo" class="tab-content">
       <div class="header-box">
         <h2 style="color: #d32f2f; margin: 0;">TRA CỨU SỰ CỐ CÁP QUANG</h2>
@@ -231,7 +225,7 @@
       <div id="suCoResult" style="margin-top: 15px;"></div>
     </div>
 
-    <!-- TAB 3: SỔ HÓA CÁP QUANG -->
+    <!-- TAB 4: SỔ HÓA CÁP QUANG -->
     <div id="tabSoHoa" class="tab-content">
       <div class="header-box">
         <h2 style="color: #2e7d32; margin: 0;">TRA CỨU DỮ LIỆU SỔ HÓA CÁP QUANG</h2>
@@ -246,7 +240,7 @@
           <select id="shTuyenCap"><option value="">-- Tất cả Tuyến cáp --</option></select>
         </div>
         <div class="form-group">
-          <label>Từ khóa tìm kiếm (Đối tượng, Tại Km, Ghi chú...):</label>
+          <label>Từ khóa tìm kiếm:</label>
           <input type="text" id="shKeyword" placeholder="Nhập từ khóa cần tìm...">
         </div>
       </div>
@@ -261,7 +255,7 @@
       <div id="soHoaResult"></div>
     </div>
 
-    <!-- TAB 4: THEO DÕI VẬT TƯ -->
+    <!-- TAB 5: THEO DÕI VẬT TƯ -->
     <div id="tabVatTu" class="tab-content">
       <div class="header-box">
         <h2 style="color: #e65100; margin: 0;">TRA CỨU VẬT TƯ VẬN HÀNH</h2>
@@ -282,12 +276,12 @@
       <div id="vatTuResult" style="margin-top: 15px;"></div>
     </div>
 
-    <!-- TAB 5: SỔ ĐIỆN TỬ (FLIPBOOK) -->
+    <!-- TAB 6: SỔ ĐIỆN TỬ (FLIPBOOK) -->
     <div id="tabFlipbook" class="tab-content">
       <div class="header-box">
         <h2 style="color: #7b1fa2; margin: 0;">📖 SỔ CA ĐIỆN TỬ (FLIPBOOK)</h2>
       </div>
-      <p style="color: #555; font-size: 14px; margin-bottom: 15px;">Lật giở xem lại các biên bản bàn giao ca trực trực quan như một cuốn sổ tay giấy truyền thống.</p>
+      <p style="color: #555; font-size: 14px; margin-bottom: 15px;">Lật giở xem lại các biên bản bàn giao ca trực trực quan.</p>
       
       <button type="button" class="btn-action" style="background: linear-gradient(135deg, #7b1fa2, #4a148c);" onclick="loadFlipbookData()">🔄 Tải & Làm Mới Sổ Tay</button>
       
@@ -325,6 +319,17 @@
     var mapInstanceSoHoa = null;
     var markersLayerSoHoa = null;
     var pageFlipInstance = null;
+
+    const defaultPositionNotes = {
+      ca1: "BC 10g và 13h30",
+      ca2: "BC 10g và tổng hợp",
+      ca3: "",
+      ttcq1: "Km860-Km894",
+      ttcq2: "Km812-Km860",
+      ttcq3: "A Lưới",
+      congTac: "",
+      nghiBu: ""
+    };
 
     function openTab(evt, tabName) {
       var tabcontent = document.getElementsByClassName("tab-content");
@@ -379,13 +384,31 @@
       return cleanStr;
     }
 
+    // Hàm lấy ngày Thứ Hai của tuần hiện tại định dạng YYYY-MM-DD
+    function getMonday(d) {
+      d = new Date(d);
+      var day = d.getDay();
+      var diff = d.getDate() - day + (day === 0 ? -6 : 1);
+      var monday = new Date(d.setDate(diff));
+      var year = monday.getFullYear();
+      var month = String(monday.getMonth() + 1).padStart(2, '0');
+      var dayStr = String(monday.getDate()).padStart(2, '0');
+      return year + '-' + month + '-' + dayStr;
+    }
+
     window.onload = function() {
       var today = new Date().toISOString().split('T')[0];
       var dateInput = document.getElementById('gcNgayGiao');
       if (dateInput) dateInput.value = today;
       
+      // Luôn gán mặc định là ngày Thứ Hai đầu tuần hiện tại
       var pcInput = document.getElementById('pcTuanBatDau');
-      if (pcInput) pcInput.value = today;
+      if (pcInput) pcInput.value = getMonday(new Date());
+
+      var dateObj = new Date();
+      var firstDayOfMonth = new Date(dateObj.getFullYear(), dateObj.getMonth(), 1).toISOString().split('T')[0];
+      if (document.getElementById('tcTuNgay')) document.getElementById('tcTuNgay').value = firstDayOfMonth;
+      if (document.getElementById('tcDenNgay')) document.getElementById('tcDenNgay').value = today;
 
       google.script.run
         .withSuccessHandler(function(res) {
@@ -416,7 +439,9 @@
               if (res.lastHandover.nguoiGiao) document.getElementById('gcNguoiGiao').value = res.lastHandover.nguoiGiao;
               if (res.lastHandover.nguoiNhan) document.getElementById('gcNguoiNhan').value = res.lastHandover.nguoiNhan;
             }
+            // Tự động tải bảng phân ca của tuần hiện tại khi khởi chạy
             loadPhanCaTable();
+            loadBangTinhCong();
           } else {
             alert("Lỗi khởi tạo dữ liệu: " + (res ? res.error : "Không phản hồi từ Server"));
           }
@@ -427,7 +452,6 @@
         .getInitialData();
     };
 
-    // PHÂN CA TRỰC FUNCTIONS
     function loadPhanCaTable() {
       var tuanBatDau = document.getElementById('pcTuanBatDau').value;
       if (!tuanBatDau) {
@@ -441,9 +465,10 @@
         .withSuccessHandler(function(res) {
           if (res.success) {
             var data = res.data || [];
+            var positionNotes = (res.positionNotes && Object.keys(res.positionNotes).length > 0) ? res.positionNotes : defaultPositionNotes;
             var daysName = ["Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "Chủ Nhật"];
             
-            var html = '<div class="table-responsive"><table><thead><tr>' +
+            var html = '<div class="table-responsive"><table class="phan-ca-table"><thead><tr>' +
               '<th>Ca / Vị trí</th>';
             
             for (var i = 0; i < 7; i++) {
@@ -451,17 +476,17 @@
               if (data[i] && data[i].ngay) dText += '<br><small>' + data[i].ngay + '</small>';
               html += '<th>' + dText + '</th>';
             }
-            html += '<th class="red-frame-cell">Ghi chú</th></tr></thead><tbody>';
+            html += '<th class="red-frame-cell" style="width: 220px;">Ghi chú</th></tr></thead><tbody>';
 
             var rowsDef = [
-              { label: 'CA 1', key: 'ca1' },
-              { label: 'CA 2', key: 'ca2' },
-              { label: 'CA 3', key: 'ca3' },
-              { label: 'TTCQ 1', key: 'ttcq1' },
-              { label: 'TTCQ 2', key: 'ttcq2' },
-              { label: 'TTCQ 3', key: 'ttcq3' },
-              { label: 'Công tác', key: 'congTac' },
-              { label: 'Nghỉ bù', key: 'nghiBu' }
+              { label: 'CA 1', key: 'ca1', noteKey: 'ca1' },
+              { label: 'CA 2', key: 'ca2', noteKey: 'ca2' },
+              { label: 'CA 3', key: 'ca3', noteKey: 'ca3' },
+              { label: 'TTCQ 1', key: 'ttcq1', noteKey: 'ttcq1' },
+              { label: 'TTCQ 2', key: 'ttcq2', noteKey: 'ttcq2' },
+              { label: 'TTCQ 3', key: 'ttcq3', noteKey: 'ttcq3' },
+              { label: 'Công tác', key: 'congTac', noteKey: 'congTac' },
+              { label: 'Nghỉ bù', key: 'nghiBu', noteKey: 'nghiBu' }
             ];
 
             rowsDef.forEach(function(r) {
@@ -470,10 +495,8 @@
                 var cellVal = (data[i] && data[i][r.key]) ? data[i][r.key] : '';
                 html += '<td>' + cellVal + '</td>';
               }
-              if (r.label === 'CA 1') {
-                var gChu = (data[0] && data[0].ghiChu) ? data[0].ghiChu : '';
-                html += '<td rowspan="8" class="red-frame-cell" style="vertical-align: top;">' + gChu + '</td>';
-              }
+              var noteVal = (positionNotes && positionNotes[r.noteKey] !== undefined && positionNotes[r.noteKey] !== '') ? positionNotes[r.noteKey] : (defaultPositionNotes[r.noteKey] || '');
+              html += '<td class="red-frame-cell">' + noteVal + '</td>';
               html += '</tr>';
             });
 
@@ -489,11 +512,76 @@
         .getPhanCaByWeek(tuanBatDau);
     }
 
+    function loadBangTinhCong() {
+      var tuNgay = document.getElementById('tcTuNgay').value;
+      var denNgay = document.getElementById('tcDenNgay').value;
+      var resDiv = document.getElementById('tinhCongResult');
+      resDiv.innerHTML = '<p class="loading">⏳ Đang tổng hợp công nhân viên...</p>';
+
+      google.script.run
+        .withSuccessHandler(function(res) {
+          if (res.success) {
+            var data = res.data || [];
+            if (data.length === 0) {
+              resDiv.innerHTML = '<p style="color: orange; font-weight: bold;">⚠️ Không có dữ liệu ca trực trong khoảng thời gian này.</p>';
+              return;
+            }
+
+            var html = '<div class="table-responsive"><table><thead><tr>' +
+              '<th>STT</th>' +
+              '<th>Họ và Tên Nhân Viên</th>' +
+              '<th style="text-align: center;">Ca 1</th>' +
+              '<th style="text-align: center;">Ca 2</th>' +
+              '<th style="text-align: center;">Ca 3</th>' +
+              '<th style="text-align: center;">TTCQ</th>' +
+              '<th style="text-align: center;">Công Tác</th>' +
+              '<th style="text-align: center;">Nghỉ Bù</th>' +
+              '<th style="text-align: center; background-color: #e8f5e9; color: #2e7d32;">Tổng Tổng</th>' +
+              '</tr></thead><tbody>';
+
+            data.forEach(function(row, idx) {
+              html += '<tr>' +
+                '<td style="text-align: center;">' + (idx + 1) + '</td>' +
+                '<td><b>' + row.nhanVien + '</b></td>' +
+                '<td style="text-align: center;">' + (row.ca1 || 0) + '</td>' +
+                '<td style="text-align: center;">' + (row.ca2 || 0) + '</td>' +
+                '<td style="text-align: center;">' + (row.ca3 || 0) + '</td>' +
+                '<td style="text-align: center;">' + (row.ttcq || 0) + '</td>' +
+                '<td style="text-align: center;">' + (row.congTac || 0) + '</td>' +
+                '<td style="text-align: center;">' + (row.nghiBu || 0) + '</td>' +
+                '<td style="text-align: center; font-weight: bold; background-color: #f1f8e9; color: #2e7d32;">' + row.tongCa + '</td>' +
+                '</tr>';
+            });
+
+            html += '</tbody></table></div>';
+            resDiv.innerHTML = html;
+          } else {
+            resDiv.innerHTML = '<p style="color: red;">❌ Lỗi: ' + res.error + '</p>';
+          }
+        })
+        .withFailureHandler(function(err) {
+          resDiv.innerHTML = '<p style="color: red;">❌ Lỗi kết nối: ' + err.message + '</p>';
+        })
+        .tinhCongNhanVien(tuNgay, denNgay);
+    }
+
     function createDropdownOptions(list, selectedValue) {
       var optHtml = '<option value="">-- Chọn --</option>';
       if (list && Array.isArray(list)) {
         list.forEach(function(item) {
           var sel = (item === selectedValue) ? 'selected' : '';
+          optHtml += '<option value="' + item + '" ' + sel + '>' + item + '</option>';
+        });
+      }
+      return optHtml;
+    }
+
+    function createMultiDropdownOptions(list, selectedValuesStr) {
+      var selectedArr = (selectedValuesStr || '').split(',').map(function(s) { return s.trim(); });
+      var optHtml = '';
+      if (list && Array.isArray(list)) {
+        list.forEach(function(item) {
+          var sel = selectedArr.includes(item) ? 'selected' : '';
           optHtml += '<option value="' + item + '" ' + sel + '>' + item + '</option>';
         });
       }
@@ -515,12 +603,13 @@
             var existingData = res.data || [];
             var trucCaList = res.trucCaList || [];
             var tuanTraList = res.tuanTraList || [];
+            var pNotes = (res.positionNotes && Object.keys(res.positionNotes).length > 0) ? res.positionNotes : defaultPositionNotes;
             var daysName = ["Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "Chủ Nhật"];
             var baseDate = new Date(tuanBatDau);
             
             var html = '<form id="formEditPhanCa" onsubmit="savePhanCaForm(event)">' +
               '<p style="color: #1976d2; font-weight: bold;">Nhập liệu phân ca cho tuần bắt đầu từ: ' + tuanBatDau + '</p>' +
-              '<div class="table-responsive"><table><thead><tr>' +
+              '<div class="table-responsive"><table class="phan-ca-table"><thead><tr>' +
               '<th>Thứ / Ngày</th><th>Ca 1</th><th>Ca 2</th><th>Ca 3</th><th>TTCQ 1</th><th>TTCQ 2</th><th>TTCQ 3</th><th>Công tác</th><th>Nghỉ bù</th>' +
               '</tr></thead><tbody>';
 
@@ -536,24 +625,55 @@
                 '<td><select name="ca1_' + i + '">' + createDropdownOptions(trucCaList, matched.ca1) + '</select></td>' +
                 '<td><select name="ca2_' + i + '">' + createDropdownOptions(trucCaList, matched.ca2) + '</select></td>' +
                 '<td><select name="ca3_' + i + '">' + createDropdownOptions(trucCaList, matched.ca3) + '</select></td>' +
-                '<td><select name="ttcq1_' + i + '">' + createDropdownOptions(tuanTraList, matched.ttcq1) + '</select></td>' +
-                '<td><select name="ttcq2_' + i + '">' + createDropdownOptions(tuanTraList, matched.ttcq2) + '</select></td>' +
-                '<td><select name="ttcq3_' + i + '">' + createDropdownOptions(tuanTraList, matched.ttcq3) + '</select></td>' +
-                '<td><select name="congTac_' + i + '">' + createDropdownOptions(trucCaList, matched.congTac) + '</select></td>' +
-                '<td><select name="nghiBu_' + i + '">' + createDropdownOptions(trucCaList, matched.nghiBu) + '</select></td>' +
+                '<td><select name="ttcq1_' + i + '" class="select-multi" multiple="multiple">' + createMultiDropdownOptions(tuanTraList, matched.ttcq1) + '</select></td>' +
+                '<td><select name="ttcq2_' + i + '" class="select-multi" multiple="multiple">' + createMultiDropdownOptions(tuanTraList, matched.ttcq2) + '</select></td>' +
+                '<td><select name="ttcq3_' + i + '" class="select-multi" multiple="multiple">' + createMultiDropdownOptions(tuanTraList, matched.ttcq3) + '</select></td>' +
+                '<td><select name="congTac_' + i + '" class="select-multi" multiple="multiple">' + createMultiDropdownOptions(trucCaList, matched.congTac) + '</select></td>' +
+                '<td><select name="nghiBu_' + i + '" class="select-multi" multiple="multiple">' + createMultiDropdownOptions(trucCaList, matched.nghiBu) + '</select></td>' +
                 '</tr>';
             }
 
+            var valCa1 = (pNotes.ca1 !== undefined && pNotes.ca1 !== '') ? pNotes.ca1 : defaultPositionNotes.ca1;
+            var valCa2 = (pNotes.ca2 !== undefined && pNotes.ca2 !== '') ? pNotes.ca2 : defaultPositionNotes.ca2;
+            var valCa3 = (pNotes.ca3 !== undefined && pNotes.ca3 !== '') ? pNotes.ca3 : defaultPositionNotes.ca3;
+            var valTtcq1 = (pNotes.ttcq1 !== undefined && pNotes.ttcq1 !== '') ? pNotes.ttcq1 : defaultPositionNotes.ttcq1;
+            var valTtcq2 = (pNotes.ttcq2 !== undefined && pNotes.ttcq2 !== '') ? pNotes.ttcq2 : defaultPositionNotes.ttcq2;
+            var valTtcq3 = (pNotes.ttcq3 !== undefined && pNotes.ttcq3 !== '') ? pNotes.ttcq3 : defaultPositionNotes.ttcq3;
+            var valCongTac = (pNotes.congTac !== undefined && pNotes.congTac !== '') ? pNotes.congTac : defaultPositionNotes.congTac;
+            var valNghiBu = (pNotes.nghiBu !== undefined && pNotes.nghiBu !== '') ? pNotes.nghiBu : defaultPositionNotes.nghiBu;
+
             html += '</tbody></table></div>' +
-              '<div style="margin-top: 15px;" class="form-group">' +
-              '<label>Ghi chú chung của tuần:</label>' +
-              '<textarea id="pcGhiChu" class="red-frame-cell" rows="3">' + ((existingData[0] && existingData[0].ghiChu) ? existingData[0].ghiChu : '') + '</textarea>' +
+              '<div class="notes-edit-box">' +
+              '<h3 style="color: #5d4037; margin-top: 0; margin-bottom: 12px; font-size: 15px; border-bottom: 1px solid #ffe0b2; padding-bottom: 8px;">Ghi chú theo vị trí trực / tuần tra</h3>' +
+              '<div class="form-row">' +
+                '<div class="form-group"><label>Ghi chú CA 1:</label><input type="text" id="pNote_ca1" value="' + valCa1 + '"></div>' +
+                '<div class="form-group"><label>Ghi chú CA 2:</label><input type="text" id="pNote_ca2" value="' + valCa2 + '"></div>' +
+                '<div class="form-group"><label>Ghi chú CA 3:</label><input type="text" id="pNote_ca3" value="' + valCa3 + '"></div>' +
+              '</div>' +
+              '<div class="form-row">' +
+                '<div class="form-group"><label>Ghi chú TTCQ 1:</label><input type="text" id="pNote_ttcq1" value="' + valTtcq1 + '"></div>' +
+                '<div class="form-group"><label>Ghi chú TTCQ 2:</label><input type="text" id="pNote_ttcq2" value="' + valTtcq2 + '"></div>' +
+                '<div class="form-group"><label>Ghi chú TTCQ 3:</label><input type="text" id="pNote_ttcq3" value="' + valTtcq3 + '"></div>' +
+              '</div>' +
+              '<div class="form-row">' +
+                '<div class="form-group"><label>Ghi chú Công tác:</label><input type="text" id="pNote_congTac" value="' + valCongTac + '"></div>' +
+                '<div class="form-group"><label>Ghi chú Nghỉ bù:</label><input type="text" id="pNote_nghiBu" value="' + valNghiBu + '"></div>' +
+              '</div>' +
               '</div>' +
               '<button type="submit" class="btn-action btn-success-action" style="margin-top: 15px;">💾 Lưu Phân Ca Tuần</button>' +
               ' <button type="button" class="btn-action" style="background:#757575; margin-top: 15px;" onclick="loadPhanCaTable()">❌ Hủy</button>' +
               '</form>';
 
             resDiv.innerHTML = html;
+            
+            $(document).ready(function() {
+                $('.select-multi').select2({
+                    placeholder: "-- Chọn nhân sự --",
+                    allowClear: true,
+                    width: '100%'
+                });
+            });
+
           } else {
             resDiv.innerHTML = '<p style="color: red;">Lỗi tải dữ liệu: ' + res.error + '</p>';
           }
@@ -564,12 +684,16 @@
         .getPhanCaByWeek(tuanBatDau);
     }
 
+    function getMultiSelectVal(inputName) {
+        var val = $('[name="' + inputName + '"]').val();
+        return (val && Array.isArray(val)) ? val.join(', ') : (val || '');
+    }
+
     function savePhanCaForm(e) {
       e.preventDefault();
       var tuanBatDau = document.getElementById('pcTuanBatDau').value;
       var daysName = ["Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "Chủ Nhật"];
       var daysData = [];
-      var ghiChuChung = document.getElementById('pcGhiChu').value;
 
       for (var i = 0; i < 7; i++) {
         daysData.push({
@@ -578,14 +702,25 @@
           ca1: document.querySelector('[name="ca1_' + i + '"]').value,
           ca2: document.querySelector('[name="ca2_' + i + '"]').value,
           ca3: document.querySelector('[name="ca3_' + i + '"]').value,
-          ttcq1: document.querySelector('[name="ttcq1_' + i + '"]').value,
-          ttcq2: document.querySelector('[name="ttcq2_' + i + '"]').value,
-          ttcq3: document.querySelector('[name="ttcq3_' + i + '"]').value,
-          congTac: document.querySelector('[name="congTac_' + i + '"]').value,
-          nghiBu: document.querySelector('[name="nghiBu_' + i + '"]').value,
-          ghiChu: ghiChuChung
+          ttcq1: getMultiSelectVal('ttcq1_' + i),
+          ttcq2: getMultiSelectVal('ttcq2_' + i),
+          ttcq3: getMultiSelectVal('ttcq3_' + i),
+          congTac: getMultiSelectVal('congTac_' + i),
+          nghiBu: getMultiSelectVal('nghiBu_' + i),
+          ghiChu: ''
         });
       }
+
+      var positionNotes = {
+        ca1: document.getElementById('pNote_ca1').value,
+        ca2: document.getElementById('pNote_ca2').value,
+        ca3: document.getElementById('pNote_ca3').value,
+        ttcq1: document.getElementById('pNote_ttcq1').value,
+        ttcq2: document.getElementById('pNote_ttcq2').value,
+        ttcq3: document.getElementById('pNote_ttcq3').value,
+        congTac: document.getElementById('pNote_congTac').value,
+        nghiBu: document.getElementById('pNote_nghiBu').value
+      };
 
       document.getElementById('phanCaResult').innerHTML = '<p class="loading">⏳ Đang lưu phân ca...</p>';
 
@@ -603,10 +738,9 @@
           alert("❌ Lỗi kết nối: " + err.message);
           loadPhanCaTable();
         })
-        .savePhanCaWeek({ tuanBatDau: tuanBatDau, daysData: daysData });
+        .savePhanCaWeek({ tuanBatDau: tuanBatDau, daysData: daysData, positionNotes: positionNotes });
     }
 
-    // CÁC HÀM CŨ ĐƯỢC GIỮ NGUYÊN VẸN 100%
     function loadShiftData() {
       var ngayGiao = document.getElementById('gcNgayGiao').value;
       var caTruc = document.getElementById('gcCaTruc').value;
@@ -695,20 +829,12 @@
               '</tr></thead><tbody>';
 
             var validCoords = [];
-
             res.data.forEach(function(row) {
               html += '<tr>' +
-                '<td>' + (row.id || '') + '</td>' +
-                '<td>' + (row.tramQL || '') + '</td>' +
-                '<td>' + (row.tuyenCap || '') + '</td>' +
-                '<td>' + (row.link || '') + '</td>' +
-                '<td>' + (row.doiTuong || '') + '</td>' +
-                '<td>' + (row.otdr || '') + '</td>' +
-                '<td>' + (row.taiKm || '') + '</td>' +
-                '<td>' + formatToaDoCell(row.toaDo) + '</td>' +
-                '<td>' + (row.thoiGian || '') + '</td>' +
-                '<td>' + (row.mxPs || '') + '</td>' +
-                '<td>' + (row.mCapPs || '') + '</td>' +
+                '<td>' + (row.id || '') + '</td><td>' + (row.tramQL || '') + '</td><td>' + (row.tuyenCap || '') + '</td>' +
+                '<td>' + (row.link || '') + '</td><td>' + (row.doiTuong || '') + '</td><td>' + (row.otdr || '') + '</td>' +
+                '<td>' + (row.taiKm || '') + '</td><td>' + formatToaDoCell(row.toaDo) + '</td><td>' + (row.thoiGian || '') + '</td>' +
+                '<td>' + (row.mxPs || '') + '</td><td>' + (row.mCapPs || '') + '</td>' +
                 '</tr>';
 
               if (row.toaDo && row.toaDo.toString().trim() !== '') {
@@ -736,34 +862,20 @@
               setTimeout(function() {
                 if (!mapInstanceSuCo) {
                   mapInstanceSuCo = L.map('mapSuCo').setView([validCoords[0].lat, validCoords[0].lng], 12);
-                  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                    maxZoom: 19,
-                    attribution: '© OpenStreetMap contributors'
-                  }).addTo(mapInstanceSuCo);
+                  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap contributors' }).addTo(mapInstanceSuCo);
                 } else {
                   mapInstanceSuCo.invalidateSize();
                 }
 
-                if (markersLayerSuCo) {
-                  mapInstanceSuCo.removeLayer(markersLayerSuCo);
-                }
+                if (markersLayerSuCo) mapInstanceSuCo.removeLayer(markersLayerSuCo);
                 markersLayerSuCo = L.layerGroup().addTo(mapInstanceSuCo);
 
                 var bounds = [];
                 validCoords.forEach(function(item) {
                   var marker = L.marker([item.lat, item.lng]).addTo(markersLayerSuCo);
-                  var doiTuong = item.info.doiTuong || 'SC';
-                  var taiKm = item.info.taiKm || '';
-                  var labelText = doiTuong + '/' + (taiKm.toLowerCase().startsWith('km') ? taiKm : 'Km ' + taiKm);
-
+                  var labelText = (item.info.doiTuong || 'SC') + '/' + (item.info.taiKm || '');
                   marker.bindTooltip(labelText, { permanent: true, direction: 'right', className: 'map-label-tag' });
-
-                  var popupContent = '<b>Tuyến:</b> ' + item.info.tuyenCap + ' (' + item.info.link + ')<br>' +
-                                     '<b>Đối tượng:</b> ' + item.info.doiTuong + ' - ' + item.info.taiKm + '<br>' +
-                                     '<b>Trạm QL:</b> ' + item.info.tramQL + '<br>' +
-                                     '<b>OTDR:</b> ' + (item.info.otdr || '') + '<br>' +
-                                     '<b>Tọa độ:</b> ' + item.info.toaDo;
-                  marker.bindPopup(popupContent);
+                  marker.bindPopup('<b>Tuyến:</b> ' + item.info.tuyenCap + '<br><b>Tọa độ:</b> ' + item.info.toaDo);
                   bounds.push([item.lat, item.lng]);
                 });
 
@@ -807,20 +919,12 @@
               '</tr></thead><tbody>';
 
             var validCoords = [];
-
             res.data.forEach(function(row) {
               html += '<tr>' +
-                '<td>' + (row.id || '') + '</td>' +
-                '<td>' + (row.tramQL || '') + '</td>' +
-                '<td>' + (row.tuyenCap || '') + '</td>' +
-                '<td>' + (row.link || '') + '</td>' +
-                '<td>' + (row.doiTuong || '') + '</td>' +
-                '<td>' + (row.otdr || '') + '</td>' +
-                '<td>' + (row.doSau || '') + '</td>' +
-                '<td>' + (row.taiKm || '') + '</td>' +
-                '<td>' + formatToaDoCell(row.toaDo) + '</td>' +
-                '<td>' + (row.thoiGian || '') + '</td>' +
-                '<td>' + (row.dienGiai || '') + '</td>' +
+                '<td>' + (row.id || '') + '</td><td>' + (row.tramQL || '') + '</td><td>' + (row.tuyenCap || '') + '</td>' +
+                '<td>' + (row.link || '') + '</td><td>' + (row.doiTuong || '') + '</td><td>' + (row.otdr || '') + '</td>' +
+                '<td>' + (row.doSau || '') + '</td><td>' + (row.taiKm || '') + '</td><td>' + formatToaDoCell(row.toaDo) + '</td>' +
+                '<td>' + (row.thoiGian || '') + '</td><td>' + (row.dienGiai || '') + '</td>' +
                 '</tr>';
 
               if (row.toaDo && row.toaDo.toString().trim() !== '') {
@@ -848,33 +952,20 @@
               setTimeout(function() {
                 if (!mapInstanceSoHoa) {
                   mapInstanceSoHoa = L.map('mapSoHoa').setView([validCoords[0].lat, validCoords[0].lng], 12);
-                  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                    maxZoom: 19,
-                    attribution: '© OpenStreetMap contributors'
-                  }).addTo(mapInstanceSoHoa);
+                  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap contributors' }).addTo(mapInstanceSoHoa);
                 } else {
                   mapInstanceSoHoa.invalidateSize();
                 }
 
-                if (markersLayerSoHoa) {
-                  mapInstanceSoHoa.removeLayer(markersLayerSoHoa);
-                }
+                if (markersLayerSoHoa) mapInstanceSoHoa.removeLayer(markersLayerSoHoa);
                 markersLayerSoHoa = L.layerGroup().addTo(mapInstanceSoHoa);
 
                 var bounds = [];
                 validCoords.forEach(function(item) {
                   var marker = L.marker([item.lat, item.lng]).addTo(markersLayerSoHoa);
-                  var doiTuong = item.info.doiTuong || 'MX';
-                  var taiKm = item.info.taiKm || '';
-                  var labelText = doiTuong + '/' + (taiKm.toLowerCase().startsWith('km') ? taiKm : 'Km ' + taiKm);
-
+                  var labelText = (item.info.doiTuong || 'MX') + '/' + (item.info.taiKm || '');
                   marker.bindTooltip(labelText, { permanent: true, direction: 'right', className: 'map-label-tag' });
-
-                  var popupContent = '<b>Tuyến:</b> ' + item.info.tuyenCap + ' (' + item.info.link + ')<br>' +
-                                     '<b>Đối tượng:</b> ' + item.info.doiTuong + ' - ' + item.info.taiKm + '<br>' +
-                                     '<b>Trạm QL:</b> ' + item.info.tramQL + '<br>' +
-                                     '<b>Tọa độ:</b> ' + item.info.toaDo;
-                  marker.bindPopup(popupContent);
+                  marker.bindPopup('<b>Tuyến:</b> ' + item.info.tuyenCap + '<br><b>Tọa độ:</b> ' + item.info.toaDo);
                   bounds.push([item.lat, item.lng]);
                 });
 
@@ -908,15 +999,9 @@
 
       dataList.forEach(function(row) {
         html += '<tr>' +
-          '<td>' + (row.maKho || '') + '</td>' +
-          '<td>' + (row.tenKho || '') + '</td>' +
-          '<td>' + (row.loHang || '') + '</td>' +
-          '<td>' + (row.maVt || '') + '</td>' +
-          '<td>' + (row.tenVt || '') + '</td>' +
-          '<td>' + (row.tenTat || '') + '</td>' +
-          '<td>' + (row.partNumber || '') + '</td>' +
-          '<td>' + (row.serial || '') + '</td>' +
-          '<td>' + (row.linhVuc || '') + '</td>' +
+          '<td>' + (row.maKho || '') + '</td><td>' + (row.tenKho || '') + '</td><td>' + (row.loHang || '') + '</td>' +
+          '<td>' + (row.maVt || '') + '</td><td>' + (row.tenVt || '') + '</td><td>' + (row.tenTat || '') + '</td>' +
+          '<td>' + (row.partNumber || '') + '</td><td>' + (row.serial || '') + '</td><td>' + (row.linhVuc || '') + '</td>' +
           '</tr>';
       });
 
@@ -924,9 +1009,7 @@
       resultDiv.innerHTML = html;
     }
 
-    function filterVatTuByLinhVuc() {
-      doSearchVatTuLocal();
-    }
+    function filterVatTuByLinhVuc() { doSearchVatTuLocal(); }
 
     function doSearchVatTuLocal() {
       var linhVucVal = document.getElementById('vtLinhVuc').value;
@@ -946,28 +1029,16 @@
       if (!str) return 'Không có';
       var text = str.toString();
       text = text.replace(/\r\n/g, '<br>').replace(/\n/g, '<br>');
-      text = text.replace(/([^\s])\s*\+(\d+FO)/gi, '$1<br>+$2');
-      text = text.replace(/^\s*\+(\d+FO)/gim, '<br>+$1');
-      text = text.replace(/([^\s])\s*•/g, '$1<br>•');
-      text = text.replace(/^\s*•/gim, '<br>•');
-      text = text.replace(/\s+-\s+([A-Z0-9])/g, '<br>- $1');
-      text = text.replace(/\s+-\s+/g, '<br>- ');
       return text;
     }
 
     function loadFlipbookData() {
       google.script.run
         .withSuccessHandler(function(res) {
-          if (res && res.success && res.data) {
-            initFlipbook(res.data);
-          } else {
-            initFlipbook([]);
-          }
+          if (res && res.success && res.data) initFlipbook(res.data);
+          else initFlipbook([]);
         })
-        .withFailureHandler(function(err) {
-          console.error("Lỗi tải flipbook:", err);
-          initFlipbook([]);
-        })
+        .withFailureHandler(function(err) { initFlipbook([]); })
         .getFlipbookRecords();
     }
 
@@ -978,29 +1049,20 @@
       var coverDiv = document.createElement('div');
       coverDiv.className = 'page page-cover';
       coverDiv.innerHTML = '<div style="margin: auto; display: flex; flex-direction: column; justify-content: space-between; height: 100%; padding: 20px 10px; text-align: center;">' +
-        '<div>' +
-          '<div style="font-size: 13px; font-weight: bold; text-transform: uppercase; margin-bottom: 4px; letter-spacing: 0.5px;">TRUNG TÂM HẠ TẦNG MIỀN TRUNG</div>' +
-          '<div style="font-size: 12px; font-weight: bold; text-transform: uppercase; opacity: 0.9;">TRẠM VIỄN THÔNG HUẾ</div>' +
-        '</div>' +
-        '<div>' +
-          '<h2 style="font-size: 28px; margin: 0; text-shadow: 2px 2px 4px rgba(0,0,0,0.4); letter-spacing: 1px;">SỔ TRỰC CA</h2>' +
-        '</div>' +
-        '<div>' +
-          '<p style="font-size: 12px; margin: 0; opacity: 0.8;">(Tổng số trang: ' + (records.length + 1) + ')</p>' +
-        '</div>' +
-      '</div>';
+        '<div><div style="font-size: 13px; font-weight: bold; text-transform: uppercase; margin-bottom: 4px;">TRUNG TÂM HẠ TẦNG MIỀN TRUNG</div>' +
+        '<div style="font-size: 12px; font-weight: bold; text-transform: uppercase;">TRẠM VIỄN THÔNG HUẾ</div></div>' +
+        '<div><h2 style="font-size: 28px; margin: 0; text-shadow: 2px 2px 4px rgba(0,0,0,0.4);">SỔ TRỰC CA</h2></div>' +
+        '<div><p style="font-size: 12px; margin: 0;">(Tổng số trang: ' + (records.length + 1) + ')</p></div></div>';
       bookElement.appendChild(coverDiv);
 
       if (records && records.length > 0) {
         records.forEach(function(rec, index) {
           var pageDiv = document.createElement('div');
           pageDiv.className = 'page';
-          
           var pdfLinkHtml = rec.pdfUrl ? '<p style="margin-top: 10px;"><a href="' + rec.pdfUrl + '" target="_blank" class="map-link">📄 Xem File PDF Biên Bản Chi Tiết</a></p>' : '';
 
           pageDiv.innerHTML = 
-            '<div>' +
-              '<h3>BIÊN BẢN BÀN GIAO CA TRỰC</h3>' +
+            '<div><h3>BIÊN BẢN BÀN GIAO CA TRỰC</h3>' +
               '<div class="page-body">' +
                 '<p style="margin: 4px 0;"><b>Ngày giao:</b> ' + (rec.ngayGiao || '') + ' | <b>Ca:</b> ' + (rec.caTruc || '') + '</p>' +
                 '<p style="margin: 4px 0;"><b>Người giao:</b> ' + (rec.nguoiGiao || '') + '<br><b>Người nhận:</b> ' + (rec.nguoiNhan || '') + '</p>' +
@@ -1014,51 +1076,27 @@
             '<div class="page-footer">Trang ' + (index + 2) + '</div>';
           bookElement.appendChild(pageDiv);
         });
-      } else {
-        var emptyDiv = document.createElement('div');
-        emptyDiv.className = 'page';
-        emptyDiv.innerHTML = '<div style="margin: auto; text-align: center;"><p style="color:#777;">Chưa có dữ liệu biên bản bàn giao ca trực nào.</p></div><div class="page-footer">Trang 2</div>';
-        bookElement.appendChild(emptyDiv);
       }
 
-      if (pageFlipInstance) {
-        pageFlipInstance.destroy();
-      }
+      if (pageFlipInstance) pageFlipInstance.destroy();
 
       try {
         pageFlipInstance = new St.PageFlip(bookElement, {
-          width: 450,
-          height: 580,
-          size: 'stretch',
-          minWidth: 300,
-          maxWidth: 600,
-          minHeight: 400,
-          maxHeight: 800,
-          maxShadowOpacity: 0.5,
-          showCover: true,
-          mobileScrollSupport: false
+          width: 450, height: 580, size: 'stretch',
+          minWidth: 300, maxWidth: 600, minHeight: 400, maxHeight: 800,
+          maxShadowOpacity: 0.5, showCover: true, mobileScrollSupport: false
         });
         pageFlipInstance.loadFromHTML(bookElement.querySelectorAll('.page'));
-        
         pageFlipInstance.on('flip', function(e) {
           var currentPage = e.data + 1;
-          var totalPages = pageFlipInstance.getPageCount();
-          document.getElementById('page-info').textContent = 'Trang: ' + currentPage + ' / ' + totalPages;
+          document.getElementById('page-info').textContent = 'Trang: ' + currentPage + ' / ' + pageFlipInstance.getPageCount();
         });
-        
         document.getElementById('page-info').textContent = 'Trang: 1 / ' + pageFlipInstance.getPageCount();
-      } catch (err) {
-        console.error("Lỗi khởi tạo PageFlip:", err);
-      }
+      } catch (err) { console.error("Lỗi PageFlip:", err); }
     }
 
-    function nextPage() {
-      if (pageFlipInstance) pageFlipInstance.flipNext();
-    }
-
-    function prevPage() {
-      if (pageFlipInstance) pageFlipInstance.flipPrev();
-    }
+    function nextPage() { if (pageFlipInstance) pageFlipInstance.flipNext(); }
+    function prevPage() { if (pageFlipInstance) pageFlipInstance.flipPrev(); }
   </script>
 </body>
 </html>
