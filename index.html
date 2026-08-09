@@ -26,6 +26,9 @@
     input, select, textarea { width: 100%; padding: 10px 12px; box-sizing: border-box; border: 1px solid #ced4da; border-radius: 4px; font-size: 14px; background: #fff; }
     input:focus, select:focus, textarea:focus { border-color: #1976d2; outline: none; box-shadow: 0 0 0 3px rgba(25,118,210,0.15); }
     
+    /* Khung đỏ cố định cho ghi chú */
+    .red-frame-cell { border: 2px solid #d32f2f !important; background-color: #fff8f8 !important; }
+    
     .btn-action { 
       background: linear-gradient(135deg, #1976d2, #1565c0); 
       color: white; 
@@ -96,7 +99,6 @@
     .page-cover { background: linear-gradient(135deg, #4a148c, #7b1fa2); color: white; text-align: center; justify-content: center; }
     .page h3 { color: #4a148c; border-bottom: 2px solid #7b1fa2; padding-bottom: 4px; margin-top: 0; margin-bottom: 10px; font-size: 15px; }
     
-    /* Cho phép cuộn dọc nội dung bên trong trang nếu quá dài tránh bị cắt cụt */
     .page-body { 
       font-size: 12px; 
       line-height: 1.4; 
@@ -116,15 +118,34 @@
 <body>
   <div class="container">
     <div class="tab-header">
-      <button class="tab-btn active" onclick="openTab(event, 'tabGiaoCa')">📊 SỔ GIAO CA TRỰC</button>
+      <button class="tab-btn active" onclick="openTab(event, 'tabPhanCa')">📅 PHÂN CA TRỰC</button>
+      <button class="tab-btn" onclick="openTab(event, 'tabGiaoCa')">📊 SỔ GIAO CA TRỰC</button>
       <button class="tab-btn" onclick="openTab(event, 'tabSuCo')">⚡ TRA CỨU SỰ CỐ</button>
       <button class="tab-btn" onclick="openTab(event, 'tabSoHoa')">🌐 SỔ HÓA CÁP QUANG</button>
       <button class="tab-btn" onclick="openTab(event, 'tabVatTu')">📦 THEO DÕI VẬT TƯ</button>
       <button class="tab-btn" onclick="openTab(event, 'tabFlipbook')">📖 SỔ CA ĐIỆN TỬ</button>
     </div>
 
+    <!-- TAB 0: PHÂN CA TRỰC -->
+    <div id="tabPhanCa" class="tab-content active">
+      <div class="header-box">
+        <h2 style="color: #1976d2; margin: 0;">LỊCH PHÂN CA TRỰC TUẦN</h2>
+      </div>
+      <div class="form-row" style="align-items: flex-end;">
+        <div class="form-group">
+          <label>Chọn tuần (Ngày Thứ Hai đầu tuần):</label>
+          <input type="date" id="pcTuanBatDau">
+        </div>
+        <div class="form-group" style="display: flex; gap: 10px; align-items: flex-end;">
+          <button type="button" class="btn-action" onclick="loadPhanCaTable()">📥 Xem Phân Ca</button>
+          <button type="button" class="btn-action btn-success-action" onclick="switchToEditPhanCa()">✏️ Nhập / Sửa Ca</button>
+        </div>
+      </div>
+      <div id="phanCaResult" style="margin-top: 20px;"></div>
+    </div>
+
     <!-- TAB 1: SỔ GIAO CA TRỰC -->
-    <div id="tabGiaoCa" class="tab-content active">
+    <div id="tabGiaoCa" class="tab-content">
       <div class="header-box">
         <h2 style="color: #1976d2; margin: 0;">NHẬT KÝ & BÀN GIAO CA TRỰC</h2>
       </div>
@@ -362,6 +383,9 @@
       var today = new Date().toISOString().split('T')[0];
       var dateInput = document.getElementById('gcNgayGiao');
       if (dateInput) dateInput.value = today;
+      
+      var pcInput = document.getElementById('pcTuanBatDau');
+      if (pcInput) pcInput.value = today;
 
       google.script.run
         .withSuccessHandler(function(res) {
@@ -392,6 +416,7 @@
               if (res.lastHandover.nguoiGiao) document.getElementById('gcNguoiGiao').value = res.lastHandover.nguoiGiao;
               if (res.lastHandover.nguoiNhan) document.getElementById('gcNguoiNhan').value = res.lastHandover.nguoiNhan;
             }
+            loadPhanCaTable();
           } else {
             alert("Lỗi khởi tạo dữ liệu: " + (res ? res.error : "Không phản hồi từ Server"));
           }
@@ -402,6 +427,186 @@
         .getInitialData();
     };
 
+    // PHÂN CA TRỰC FUNCTIONS
+    function loadPhanCaTable() {
+      var tuanBatDau = document.getElementById('pcTuanBatDau').value;
+      if (!tuanBatDau) {
+        alert("Vui lòng chọn tuần bắt đầu!");
+        return;
+      }
+      var resDiv = document.getElementById('phanCaResult');
+      resDiv.innerHTML = '<p class="loading">⏳ Đang tải lịch phân ca...</p>';
+
+      google.script.run
+        .withSuccessHandler(function(res) {
+          if (res.success) {
+            var data = res.data || [];
+            var daysName = ["Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "Chủ Nhật"];
+            
+            var html = '<div class="table-responsive"><table><thead><tr>' +
+              '<th>Ca / Vị trí</th>';
+            
+            for (var i = 0; i < 7; i++) {
+              var dText = daysName[i];
+              if (data[i] && data[i].ngay) dText += '<br><small>' + data[i].ngay + '</small>';
+              html += '<th>' + dText + '</th>';
+            }
+            html += '<th class="red-frame-cell">Ghi chú</th></tr></thead><tbody>';
+
+            var rowsDef = [
+              { label: 'CA 1', key: 'ca1' },
+              { label: 'CA 2', key: 'ca2' },
+              { label: 'CA 3', key: 'ca3' },
+              { label: 'TTCQ 1', key: 'ttcq1' },
+              { label: 'TTCQ 2', key: 'ttcq2' },
+              { label: 'TTCQ 3', key: 'ttcq3' },
+              { label: 'Công tác', key: 'congTac' },
+              { label: 'Nghỉ bù', key: 'nghiBu' }
+            ];
+
+            rowsDef.forEach(function(r) {
+              html += '<tr><td><b>' + r.label + '</b></td>';
+              for (var i = 0; i < 7; i++) {
+                var cellVal = (data[i] && data[i][r.key]) ? data[i][r.key] : '';
+                html += '<td>' + cellVal + '</td>';
+              }
+              if (r.label === 'CA 1') {
+                var gChu = (data[0] && data[0].ghiChu) ? data[0].ghiChu : '';
+                html += '<td rowspan="8" class="red-frame-cell" style="vertical-align: top;">' + gChu + '</td>';
+              }
+              html += '</tr>';
+            });
+
+            html += '</tbody></table></div>';
+            resDiv.innerHTML = html;
+          } else {
+            resDiv.innerHTML = '<p style="color: red;">❌ Lỗi: ' + res.error + '</p>';
+          }
+        })
+        .withFailureHandler(function(err) {
+          resDiv.innerHTML = '<p style="color: red;">❌ Lỗi kết nối: ' + err.message + '</p>';
+        })
+        .getPhanCaByWeek(tuanBatDau);
+    }
+
+    function createDropdownOptions(list, selectedValue) {
+      var optHtml = '<option value="">-- Chọn --</option>';
+      if (list && Array.isArray(list)) {
+        list.forEach(function(item) {
+          var sel = (item === selectedValue) ? 'selected' : '';
+          optHtml += '<option value="' + item + '" ' + sel + '>' + item + '</option>';
+        });
+      }
+      return optHtml;
+    }
+
+    function switchToEditPhanCa() {
+      var tuanBatDau = document.getElementById('pcTuanBatDau').value;
+      if (!tuanBatDau) {
+        alert("Vui lòng chọn tuần bắt đầu!");
+        return;
+      }
+      var resDiv = document.getElementById('phanCaResult');
+      resDiv.innerHTML = '<p class="loading">⏳ Đang tải dữ liệu để chỉnh sửa...</p>';
+
+      google.script.run
+        .withSuccessHandler(function(res) {
+          if (res.success) {
+            var existingData = res.data || [];
+            var trucCaList = res.trucCaList || [];
+            var tuanTraList = res.tuanTraList || [];
+            var daysName = ["Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "Chủ Nhật"];
+            var baseDate = new Date(tuanBatDau);
+            
+            var html = '<form id="formEditPhanCa" onsubmit="savePhanCaForm(event)">' +
+              '<p style="color: #1976d2; font-weight: bold;">Nhập liệu phân ca cho tuần bắt đầu từ: ' + tuanBatDau + '</p>' +
+              '<div class="table-responsive"><table><thead><tr>' +
+              '<th>Thứ / Ngày</th><th>Ca 1</th><th>Ca 2</th><th>Ca 3</th><th>TTCQ 1</th><th>TTCQ 2</th><th>TTCQ 3</th><th>Công tác</th><th>Nghỉ bù</th>' +
+              '</tr></thead><tbody>';
+
+            for (var i = 0; i < 7; i++) {
+              var currDate = new Date(baseDate);
+              currDate.setDate(baseDate.getDate() + i);
+              var dateStr = currDate.toISOString().split('T')[0];
+              
+              var matched = existingData.find(function(item) { return item.thu === daysName[i]; }) || {};
+
+              html += '<tr>' +
+                '<td><b>' + daysName[i] + '</b><br><input type="date" name="ngay_' + i + '" value="' + (matched.ngay || dateStr) + '" style="font-size:11px; padding:4px;"></td>' +
+                '<td><select name="ca1_' + i + '">' + createDropdownOptions(trucCaList, matched.ca1) + '</select></td>' +
+                '<td><select name="ca2_' + i + '">' + createDropdownOptions(trucCaList, matched.ca2) + '</select></td>' +
+                '<td><select name="ca3_' + i + '">' + createDropdownOptions(trucCaList, matched.ca3) + '</select></td>' +
+                '<td><select name="ttcq1_' + i + '">' + createDropdownOptions(tuanTraList, matched.ttcq1) + '</select></td>' +
+                '<td><select name="ttcq2_' + i + '">' + createDropdownOptions(tuanTraList, matched.ttcq2) + '</select></td>' +
+                '<td><select name="ttcq3_' + i + '">' + createDropdownOptions(tuanTraList, matched.ttcq3) + '</select></td>' +
+                '<td><select name="congTac_' + i + '">' + createDropdownOptions(trucCaList, matched.congTac) + '</select></td>' +
+                '<td><select name="nghiBu_' + i + '">' + createDropdownOptions(trucCaList, matched.nghiBu) + '</select></td>' +
+                '</tr>';
+            }
+
+            html += '</tbody></table></div>' +
+              '<div style="margin-top: 15px;" class="form-group">' +
+              '<label>Ghi chú chung của tuần:</label>' +
+              '<textarea id="pcGhiChu" class="red-frame-cell" rows="3">' + ((existingData[0] && existingData[0].ghiChu) ? existingData[0].ghiChu : '') + '</textarea>' +
+              '</div>' +
+              '<button type="submit" class="btn-action btn-success-action" style="margin-top: 15px;">💾 Lưu Phân Ca Tuần</button>' +
+              ' <button type="button" class="btn-action" style="background:#757575; margin-top: 15px;" onclick="loadPhanCaTable()">❌ Hủy</button>' +
+              '</form>';
+
+            resDiv.innerHTML = html;
+          } else {
+            resDiv.innerHTML = '<p style="color: red;">Lỗi tải dữ liệu: ' + res.error + '</p>';
+          }
+        })
+        .withFailureHandler(function(err) {
+          resDiv.innerHTML = '<p style="color: red;">Lỗi kết nối: ' + err.message + '</p>';
+        })
+        .getPhanCaByWeek(tuanBatDau);
+    }
+
+    function savePhanCaForm(e) {
+      e.preventDefault();
+      var tuanBatDau = document.getElementById('pcTuanBatDau').value;
+      var daysName = ["Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "Chủ Nhật"];
+      var daysData = [];
+      var ghiChuChung = document.getElementById('pcGhiChu').value;
+
+      for (var i = 0; i < 7; i++) {
+        daysData.push({
+          ngay: document.querySelector('[name="ngay_' + i + '"]').value,
+          thu: daysName[i],
+          ca1: document.querySelector('[name="ca1_' + i + '"]').value,
+          ca2: document.querySelector('[name="ca2_' + i + '"]').value,
+          ca3: document.querySelector('[name="ca3_' + i + '"]').value,
+          ttcq1: document.querySelector('[name="ttcq1_' + i + '"]').value,
+          ttcq2: document.querySelector('[name="ttcq2_' + i + '"]').value,
+          ttcq3: document.querySelector('[name="ttcq3_' + i + '"]').value,
+          congTac: document.querySelector('[name="congTac_' + i + '"]').value,
+          nghiBu: document.querySelector('[name="nghiBu_' + i + '"]').value,
+          ghiChu: ghiChuChung
+        });
+      }
+
+      document.getElementById('phanCaResult').innerHTML = '<p class="loading">⏳ Đang lưu phân ca...</p>';
+
+      google.script.run
+        .withSuccessHandler(function(res) {
+          if (res.success) {
+            alert("✅ Lưu phân ca thành công!");
+            loadPhanCaTable();
+          } else {
+            alert("❌ Lỗi: " + res.error);
+            loadPhanCaTable();
+          }
+        })
+        .withFailureHandler(function(err) {
+          alert("❌ Lỗi kết nối: " + err.message);
+          loadPhanCaTable();
+        })
+        .savePhanCaWeek({ tuanBatDau: tuanBatDau, daysData: daysData });
+    }
+
+    // CÁC HÀM CŨ ĐƯỢC GIỮ NGUYÊN VẸN 100%
     function loadShiftData() {
       var ngayGiao = document.getElementById('gcNgayGiao').value;
       var caTruc = document.getElementById('gcCaTruc').value;
@@ -737,11 +942,9 @@
       renderVatTuTable(filtered);
     }
 
-    // Hàm thông minh tự động tách dòng đối với văn bản từ Google Docs
     function formatHtmlText(str) {
       if (!str) return 'Không có';
       var text = str.toString();
-      
       text = text.replace(/\r\n/g, '<br>').replace(/\n/g, '<br>');
       text = text.replace(/([^\s])\s*\+(\d+FO)/gi, '$1<br>+$2');
       text = text.replace(/^\s*\+(\d+FO)/gim, '<br>+$1');
@@ -749,11 +952,9 @@
       text = text.replace(/^\s*•/gim, '<br>•');
       text = text.replace(/\s+-\s+([A-Z0-9])/g, '<br>- $1');
       text = text.replace(/\s+-\s+/g, '<br>- ');
-      
       return text;
     }
 
-    // Các hàm điều khiển Flipbook
     function loadFlipbookData() {
       google.script.run
         .withSuccessHandler(function(res) {
