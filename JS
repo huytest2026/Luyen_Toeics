@@ -256,6 +256,94 @@ function processHandover(formData) {
   }
 }
 
+function getFlipbookRecords() {
+  try {
+    const ss = SpreadsheetApp.openById(LOG_SHEET_ID);
+    const sheet = ss.getSheets()[0];
+    const lastRow = sheet.getLastRow();
+    
+    if (lastRow < 2) {
+      return { success: true, data: [] };
+    }
+    
+    const displayValues = sheet.getRange(2, 1, lastRow - 1, sheet.getLastColumn()).getDisplayValues();
+    const rawValues = sheet.getRange(2, 1, lastRow - 1, sheet.getLastColumn()).getValues();
+    
+    let records = [];
+    for (let i = 0; i < displayValues.length; i++) {
+      const displayRow = displayValues[i];
+      const rawRow = rawValues[i];
+      
+      const ngayGiao = displayRow[1] || rawRow[1] || '';
+      const caTruc = displayRow[2] || rawRow[2] || '';
+      const nguoiGiao = displayRow[3] || rawRow[3] || '';
+      const nguoiNhan = displayRow[4] || rawRow[4] || '';
+      
+      const docUrl = rawRow.find(val => typeof val === 'string' && val.includes('docs.google.com')) || 
+                     displayRow.find(val => typeof val === 'string' && val.includes('docs.google.com')) || '';
+      
+      let baoDuong = 'Không có';
+      let tinhHinh = 'Không có';
+      let tonTai = 'Không có';
+      
+      if (docUrl) {
+        try {
+          const match = docUrl.match(/\/d\/([a-zA-Z0-9-_]+)/);
+          if (match) {
+            const docId = match[1];
+            const doc = DocumentApp.openById(docId);
+            const text = doc.getBody().getText();
+            
+           // 1. Trích xuất mục Bảo dưỡng
+        let partBaoDuong = text.match(/2\.1[\s\S]*?(?=2\.2|2\.4|3\. XÁC NHẬN|$)/i);
+        if (partBaoDuong) {
+          baoDuong = partBaoDuong[0].replace(/^2\.1\.?\s*Bảo dưỡng ngày\s*/i, '').trim();
+          // Ngắt dòng trước dấu gạch ngang có khoảng trắng hoặc trước các chữ E1, E2, E3
+          baoDuong = baoDuong.replace(/(\s-\s|\bE\d:)/g, '<br>$1');
+        }
+        
+        // 2. Trích xuất mục Tình hình thông tin
+        let partTinhHinh = text.match(/2\.2[\s\S]*?(?=2\.4|3\. XÁC NHẬN|$)/i);
+        if (partTinhHinh) {
+          tinhHinh = partTinhHinh[0].replace(/^2\.2\.?\s*Tình hình thông tin\s*/i, '').trim();
+          // Ngắt dòng trước dấu +, dấu -, hoặc mốc giờ để giữ trọn vẹn cụm từ trên một dòng
+          tinhHinh = tinhHinh.replace(/(\+|\s-\s|\b\d{1,2}h\d{2})/g, '<br>$1');
+        }
+        
+        // 3. Trích xuất mục Tồn tại
+        let partTonTai = text.match(/2\.4[\s\S]*?(?=3\. XÁC NHẬN|$)/i);
+        if (partTonTai) {
+          tonTai = partTonTai[0].replace(/^2\.4\.?\s*TỒN TẠI\s*/i, '').trim();
+          // Ngắt dòng trước dấu chấm tròn (•) hoặc dấu trừ (-) để không bị rớt ký tự
+          tonTai = tonTai.replace(/([•\-])/g, '<br>$1');
+        }
+          }
+        } catch (docErr) {
+          console.error("Lỗi đọc file doc: " + docErr.toString());
+        }
+      }
+      
+      if (ngayGiao) {
+        records.push({
+          ngayGiao: formatDate(ngayGiao),
+          caTruc: caTruc,
+          nguoiGiao: nguoiGiao,
+          nguoiNhan: nguoiNhan,
+          congViecThuongXuyen: baoDuong,
+          noiDungCongViec: tinhHinh,
+          noiDungTonTai: tonTai,
+          docUrl: docUrl,
+          pdfUrl: docUrl ? getPdfUrlFromDocUrl(docUrl) : ''
+        });
+      }
+    }
+    
+    return { success: true, data: records.reverse() };
+  } catch (err) {
+    return { success: false, error: err.toString() };
+  }
+}
+
 function searchSuCo(linkVal, tuyenCapVal, otdrVal, onlyNearest) {
   try {
     const ss = SpreadsheetApp.openById(LOG_SHEET_ID);
