@@ -10,6 +10,103 @@ function doGet() {
       .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 
+// ================= PHÂN CA TRỰC BACKEND FUNCTIONS =================
+function getPhanCaByWeek(tuanBatDau) {
+  try {
+    const ss = SpreadsheetApp.openById(LOG_SHEET_ID);
+    let sheet = ss.getSheetByName('PhanCa');
+    
+    // Đọc danh sách nhân sự từ cột N (cột 14) và O (cột 15) để đổ vào dropdown
+    let trucCaList = [];
+    let tuanTraList = [];
+    if (sheet) {
+      const lastRowAll = sheet.getLastRow();
+      if (lastRowAll >= 2) {
+        const staffValues = sheet.getRange(2, 14, lastRowAll - 1, 2).getDisplayValues();
+        let trucCaSet = new Set();
+        let tuanTraSet = new Set();
+        staffValues.forEach(row => {
+          if (row[0] && row[0].trim() !== '') trucCaSet.add(row[0].trim());
+          if (row[1] && row[1].trim() !== '') tuanTraSet.add(row[1].trim());
+        });
+        trucCaList = Array.from(trucCaSet).sort((a, b) => a.localeCompare(b, 'vi', { sensitivity: 'base' }));
+        tuanTraList = Array.from(tuanTraSet).sort((a, b) => a.localeCompare(b, 'vi', { sensitivity: 'base' }));
+      }
+    }
+
+    if (!sheet) {
+      return { success: true, data: [], trucCaList: trucCaList, tuanTraList: tuanTraList };
+    }
+    const lastRow = sheet.getLastRow();
+    if (lastRow < 2) return { success: true, data: [], trucCaList: trucCaList, tuanTraList: tuanTraList };
+    
+    const values = sheet.getRange(2, 1, lastRow - 1, 12).getDisplayValues();
+    let weekData = [];
+    
+    values.forEach(row => {
+      const rowTuanBatDau = toCanonicalDate(row[2]) || row[2].toString().trim();
+      const targetTuan = toCanonicalDate(tuanBatDau) || tuanBatDau.toString().trim();
+      if (rowTuanBatDau === targetTuan) {
+        weekData.push({
+          ngay: row[0],
+          thu: row[1],
+          tuanBatDau: row[2],
+          ca1: row[3],
+          ca2: row[4],
+          ca3: row[5],
+          ttcq1: row[6],
+          ttcq2: row[7],
+          ttcq3: row[8],
+          congTac: row[9],
+          nghiBu: row[10],
+          ghiChu: row[11]
+        });
+      }
+    });
+    return { success: true, data: weekData, trucCaList: trucCaList, tuanTraList: tuanTraList };
+  } catch (err) {
+    return { success: false, error: err.toString() };
+  }
+}
+
+function savePhanCaWeek(payload) {
+  try {
+    const ss = SpreadsheetApp.openById(LOG_SHEET_ID);
+    let sheet = ss.getSheetByName('PhanCa');
+    if (!sheet) {
+      sheet = ss.insertSheet('PhanCa');
+      sheet.appendRow(["Ngay", "Thu", "Tuần bắt đầu", "Ca1", "Ca2", "Ca3", "TRCQ1", "TRCQ2", "TRCQ3", "Công tác", "Nghỉ bù", "Ghi chú"]);
+    }
+    
+    const tuanBatDau = payload.tuanBatDau;
+    const daysData = payload.daysData;
+    
+    const lastRow = sheet.getLastRow();
+    if (lastRow >= 2) {
+      const values = sheet.getRange(2, 1, lastRow - 1, 12).getDisplayValues();
+      for (let i = values.length; i >= 1; i--) {
+        const rowTuan = toCanonicalDate(values[i-1][2]) || values[i-1][2].toString().trim();
+        const targetTuan = toCanonicalDate(tuanBatDau) || tuanBatDau.toString().trim();
+        if (rowTuan === targetTuan) {
+          sheet.deleteRow(i + 1);
+        }
+      }
+    }
+    
+    daysData.forEach(d => {
+      sheet.appendRow([
+        d.ngay, d.thu, tuanBatDau, d.ca1, d.ca2, d.ca3,
+        d.ttcq1, d.ttcq2, d.ttcq3, d.congTac, d.nghiBu, d.ghiChu
+      ]);
+    });
+    
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: err.toString() };
+  }
+}
+// =================================================================
+
 function getGivenName(fullName) {
   if (!fullName) return '';
   const parts = fullName.toString().trim().split(/\s+/);
@@ -294,29 +391,23 @@ function getFlipbookRecords() {
             const doc = DocumentApp.openById(docId);
             const text = doc.getBody().getText();
             
-           // 1. Trích xuất mục Bảo dưỡng
-        let partBaoDuong = text.match(/2\.1[\s\S]*?(?=2\.2|2\.4|3\. XÁC NHẬN|$)/i);
-        if (partBaoDuong) {
-          baoDuong = partBaoDuong[0].replace(/^2\.1\.?\s*Bảo dưỡng ngày\s*/i, '').trim();
-          // Ngắt dòng trước dấu gạch ngang có khoảng trắng hoặc trước các chữ E1, E2, E3
-          baoDuong = baoDuong.replace(/(\s-\s|\bE\d:)/g, '<br>$1');
-        }
-        
-        // 2. Trích xuất mục Tình hình thông tin
-        let partTinhHinh = text.match(/2\.2[\s\S]*?(?=2\.4|3\. XÁC NHẬN|$)/i);
-        if (partTinhHinh) {
-          tinhHinh = partTinhHinh[0].replace(/^2\.2\.?\s*Tình hình thông tin\s*/i, '').trim();
-          // Ngắt dòng trước dấu +, dấu -, hoặc mốc giờ để giữ trọn vẹn cụm từ trên một dòng
-          tinhHinh = tinhHinh.replace(/(\+|\s-\s|\b\d{1,2}h\d{2})/g, '<br>$1');
-        }
-        
-        // 3. Trích xuất mục Tồn tại
-        let partTonTai = text.match(/2\.4[\s\S]*?(?=3\. XÁC NHẬN|$)/i);
-        if (partTonTai) {
-          tonTai = partTonTai[0].replace(/^2\.4\.?\s*TỒN TẠI\s*/i, '').trim();
-          // Ngắt dòng trước dấu chấm tròn (•) hoặc dấu trừ (-) để không bị rớt ký tự
-          tonTai = tonTai.replace(/([•\-])/g, '<br>$1');
-        }
+            let partBaoDuong = text.match(/2\.1[\s\S]*?(?=2\.2|2\.4|3\. XÁC NHẬN|$)/i);
+            if (partBaoDuong) {
+              baoDuong = partBaoDuong[0].replace(/^2\.1\.?\s*Bảo dưỡng ngày\s*/i, '').trim();
+              baoDuong = baoDuong.replace(/(\s-\s|\bE\d:)/g, '<br>$1');
+            }
+            
+            let partTinhHinh = text.match(/2\.2[\s\S]*?(?=2\.4|3\. XÁC NHẬN|$)/i);
+            if (partTinhHinh) {
+              tinhHinh = partTinhHinh[0].replace(/^2\.2\.?\s*Tình hình thông tin\s*/i, '').trim();
+              tinhHinh = tinhHinh.replace(/(\+|\s-\s|\b\d{1,2}h\d{2})/g, '<br>$1');
+            }
+            
+            let partTonTai = text.match(/2\.4[\s\S]*?(?=3\. XÁC NHẬN|$)/i);
+            if (partTonTai) {
+              tonTai = partTonTai[0].replace(/^2\.4\.?\s*TỒN TẠI\s*/i, '').trim();
+              tonTai = tonTai.replace(/([•\-])/g, '<br>$1');
+            }
           }
         } catch (docErr) {
           console.error("Lỗi đọc file doc: " + docErr.toString());
