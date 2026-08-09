@@ -14,34 +14,41 @@ function doGet() {
 function getPhanCaByWeek(tuanBatDau) {
   try {
     const ss = SpreadsheetApp.openById(LOG_SHEET_ID);
-    let sheet = ss.getSheetByName('PhanCa');
     
-    // Đọc danh sách nhân sự từ cột N (cột 14) và O (cột 15) để đổ vào dropdown
     let trucCaList = [];
     let tuanTraList = [];
-    if (sheet) {
-      const lastRowAll = sheet.getLastRow();
-      if (lastRowAll >= 2) {
-        const staffValues = sheet.getRange(2, 14, lastRowAll - 1, 2).getDisplayValues();
+    let staffSheet = ss.getSheetByName('Danh sách nhân viên');
+    if (staffSheet) {
+      const lastStaffRow = staffSheet.getLastRow();
+      if (lastStaffRow >= 2) {
+        const staffValues = staffSheet.getRange(2, 7, lastStaffRow - 1, 2).getDisplayValues();
         let trucCaSet = new Set();
         let tuanTraSet = new Set();
         staffValues.forEach(row => {
-          if (row[0] && row[0].trim() !== '') trucCaSet.add(row[0].trim());
-          if (row[1] && row[1].trim() !== '') tuanTraSet.add(row[1].trim());
+          if (row[0] && row[0].trim() !== '') {
+            trucCaSet.add(row[0].trim());
+          }
+          if (row[1] && row[1].trim() !== '') {
+            tuanTraSet.add(row[1].trim());
+          }
         });
         trucCaList = Array.from(trucCaSet).sort((a, b) => a.localeCompare(b, 'vi', { sensitivity: 'base' }));
         tuanTraList = Array.from(tuanTraSet).sort((a, b) => a.localeCompare(b, 'vi', { sensitivity: 'base' }));
       }
     }
 
+    let sheet = ss.getSheetByName('PhanCa');
     if (!sheet) {
-      return { success: true, data: [], trucCaList: trucCaList, tuanTraList: tuanTraList };
+      return { success: true, data: [], trucCaList: trucCaList, tuanTraList: tuanTraList, positionNotes: {} };
     }
     const lastRow = sheet.getLastRow();
-    if (lastRow < 2) return { success: true, data: [], trucCaList: trucCaList, tuanTraList: tuanTraList };
+    if (lastRow < 2) return { success: true, data: [], trucCaList: trucCaList, tuanTraList: tuanTraList, positionNotes: {} };
     
-    const values = sheet.getRange(2, 1, lastRow - 1, 12).getDisplayValues();
+    const lastCol = Math.max(12, sheet.getLastColumn());
+    const values = sheet.getRange(2, 1, lastRow - 1, lastCol).getDisplayValues();
     let weekData = [];
+    let positionNotes = { ca1: '', ca2: '', ca3: '', ttcq1: '', ttcq2: '', ttcq3: '', congTac: '', nghiBu: '' };
+    let foundFirstRow = false;
     
     values.forEach(row => {
       const rowTuanBatDau = toCanonicalDate(row[2]) || row[2].toString().trim();
@@ -61,9 +68,22 @@ function getPhanCaByWeek(tuanBatDau) {
           nghiBu: row[10],
           ghiChu: row[11]
         });
+        if (!foundFirstRow) {
+          positionNotes = {
+            ca1: row[15] || '',
+            ca2: row[16] || '',
+            ca3: row[17] || '',
+            ttcq1: row[18] || '',
+            ttcq2: row[19] || '',
+            ttcq3: row[20] || '',
+            congTac: row[21] || '',
+            nghiBu: row[22] || ''
+          };
+          foundFirstRow = true;
+        }
       }
     });
-    return { success: true, data: weekData, trucCaList: trucCaList, tuanTraList: tuanTraList };
+    return { success: true, data: weekData, trucCaList: trucCaList, tuanTraList: tuanTraList, positionNotes: positionNotes };
   } catch (err) {
     return { success: false, error: err.toString() };
   }
@@ -80,6 +100,7 @@ function savePhanCaWeek(payload) {
     
     const tuanBatDau = payload.tuanBatDau;
     const daysData = payload.daysData;
+    const positionNotes = payload.positionNotes || {};
     
     const lastRow = sheet.getLastRow();
     if (lastRow >= 2) {
@@ -93,11 +114,22 @@ function savePhanCaWeek(payload) {
       }
     }
     
-    daysData.forEach(d => {
-      sheet.appendRow([
+    daysData.forEach((d, idx) => {
+      let rowValues = [
         d.ngay, d.thu, tuanBatDau, d.ca1, d.ca2, d.ca3,
-        d.ttcq1, d.ttcq2, d.ttcq3, d.congTac, d.nghiBu, d.ghiChu
-      ]);
+        d.ttcq1, d.ttcq2, d.ttcq3, d.congTac, d.nghiBu, d.ghiChu || ''
+      ];
+      if (idx === 0) {
+        rowValues[15] = positionNotes.ca1 || '';
+        rowValues[16] = positionNotes.ca2 || '';
+        rowValues[17] = positionNotes.ca3 || '';
+        rowValues[18] = positionNotes.ttcq1 || '';
+        rowValues[19] = positionNotes.ttcq2 || '';
+        rowValues[20] = positionNotes.ttcq3 || '';
+        rowValues[21] = positionNotes.congTac || '';
+        rowValues[22] = positionNotes.nghiBu || '';
+      }
+      sheet.appendRow(rowValues);
     });
     
     return { success: true };
@@ -105,7 +137,86 @@ function savePhanCaWeek(payload) {
     return { success: false, error: err.toString() };
   }
 }
-// =================================================================
+
+// ================= TÍNH CÔNG NHÂN VIÊN =================
+function tinhCongNhanVien(tuNgay, denNgay) {
+  try {
+    const ss = SpreadsheetApp.openById(LOG_SHEET_ID);
+    const sheet = ss.getSheetByName('PhanCa');
+    if (!sheet) {
+      return { success: false, error: 'Không tìm thấy dữ liệu phân ca để tính công.' };
+    }
+
+    const lastRow = sheet.getLastRow();
+    if (lastRow < 2) return { success: true, data: [] };
+
+    const values = sheet.getRange(2, 1, lastRow - 1, 11).getDisplayValues();
+    
+    const startCanon = toCanonicalDate(tuNgay);
+    const endCanon = toCanonicalDate(denNgay);
+
+    let stats = {};
+
+    function addStaffRecord(name, type) {
+      if (!name || name.trim() === '') return;
+      const cleanName = name.trim();
+      if (!stats[cleanName]) {
+        stats[cleanName] = { 
+          nhanVien: cleanName, 
+          ca1: 0, ca2: 0, ca3: 0, 
+          ttcq: 0, congTac: 0, nghiBu: 0, 
+          tongCa: 0 
+        };
+      }
+      if (type === 'ca1') stats[cleanName].ca1++;
+      if (type === 'ca2') stats[cleanName].ca2++;
+      if (type === 'ca3') stats[cleanName].ca3++;
+      if (type === 'ttcq') stats[cleanName].ttcq++;
+      if (type === 'congTac') stats[cleanName].congTac++;
+      if (type === 'nghiBu') stats[cleanName].nghiBu++;
+    }
+
+    values.forEach(row => {
+      const ngayRow = toCanonicalDate(row[0]);
+      if (!ngayRow) return;
+
+      if (startCanon && ngayRow < startCanon) return;
+      if (endCanon && ngayRow > endCanon) return;
+
+      if (row[3]) addStaffRecord(row[3], 'ca1');
+      if (row[4]) addStaffRecord(row[4], 'ca2');
+      if (row[5]) addStaffRecord(row[5], 'ca3');
+
+      if (row[9]) {
+        let persons = row[9].split(',');
+        persons.forEach(p => addStaffRecord(p, 'congTac'));
+      }
+
+      [6, 7, 8].forEach(colIdx => {
+        if (row[colIdx]) {
+          let persons = row[colIdx].split(',');
+          persons.forEach(p => addStaffRecord(p, 'ttcq'));
+        }
+      });
+
+      if (row[10]) {
+        let persons = row[10].split(',');
+        persons.forEach(p => addStaffRecord(p, 'nghiBu'));
+      }
+    });
+
+    let resultList = Object.values(stats).map(item => {
+      item.tongCa = item.ca1 + item.ca2 + item.ca3 + item.ttcq + item.congTac;
+      return item;
+    });
+
+    resultList.sort((a, b) => getGivenName(a.nhanVien).localeCompare(getGivenName(b.nhanVien), 'vi'));
+
+    return { success: true, data: resultList };
+  } catch (err) {
+    return { success: false, error: err.toString() };
+  }
+}
 
 function getGivenName(fullName) {
   if (!fullName) return '';
