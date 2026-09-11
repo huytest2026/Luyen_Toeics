@@ -3,28 +3,27 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Bài Thi Trắc Nghiệm TOEIC Từ File PDF</title>
-  <!-- Thư viện PDF.js -->
+  <title>Bài Thi Trắc Nghiệm TOEIC - Cắt Câu Hỏi Từ PDF</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <style>
-    body { font-family: Arial, sans-serif; max-width: 750px; margin: 20px auto; padding: 0 15px; color: #333; }
+    body { font-family: Arial, sans-serif; max-width: 800px; margin: 20px auto; padding: 0 15px; color: #333; }
     
     .upload-box { background: #f0f4f8; border: 2px dashed #007bff; padding: 15px; text-align: center; border-radius: 8px; margin-bottom: 20px; }
-    .upload-box input { margin-top: 10px; cursor: pointer; }
     .loading { display: none; font-weight: bold; color: #007bff; margin-top: 10px; }
 
-    .nav-container { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
-    .nav-btn { padding: 8px 16px; border: 1px solid #ccc; background: #fff; border-radius: 6px; cursor: pointer; font-weight: bold; }
+    /* Thanh danh sách câu hỏi dạng lưới thu nhỏ */
+    .nav-container { display: flex; gap: 6px; margin-bottom: 20px; flex-wrap: wrap; max-height: 180px; overflow-y: auto; padding: 5px; border: 1px solid #ddd; border-radius: 6px; }
+    .nav-btn { width: 36px; height: 36px; padding: 0; border: 1px solid #ccc; background: #fff; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: bold; }
     .nav-btn.active { background: #007bff; color: white; border-color: #007bff; }
     
-    .question-title { font-size: 20px; font-weight: bold; margin-bottom: 15px; }
-    .img-box { text-align: center; margin-bottom: 15px; background: #f8f9fa; padding: 10px; border-radius: 8px; min-height: 200px; display: flex; align-items: center; justify-content: center; }
-    .img-box img { max-width: 100%; max-height: 500px; border-radius: 4px; }
+    .question-title { font-size: 18px; font-weight: bold; margin-bottom: 10px; }
+    .img-box { text-align: center; margin-bottom: 15px; background: #f8f9fa; padding: 10px; border: 1px solid #ddd; border-radius: 8px; }
+    .img-box img { max-width: 100%; height: auto; max-height: 450px; border-radius: 4px; object-fit: contain; }
     
     audio { width: 100%; margin-bottom: 15px; }
     
-    .options { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
-    .option-btn { text-align: left; padding: 12px 15px; border: 1px solid #ddd; background: #fff; border-radius: 6px; cursor: pointer; font-size: 15px; }
+    .options { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
+    .option-btn { text-align: left; padding: 10px 15px; border: 1px solid #ddd; background: #fff; border-radius: 6px; cursor: pointer; font-size: 14px; }
     .option-btn.correct { background: #28a745; color: white; border-color: #28a745; font-weight: bold; }
     .option-btn.wrong { background: #dc3545; color: white; border-color: #dc3545; font-weight: bold; }
     
@@ -35,28 +34,23 @@
 </head>
 <body>
 
-  <!-- Khu vực tải file PDF -->
   <div class="upload-box">
-    <label for="pdfInput"><strong>Chọn file PDF câu hỏi TOEIC:</strong></label><br>
+    <label for="pdfInput"><strong>Chọn file PDF bài thi TOEIC:</strong></label><br>
     <input type="file" id="pdfInput" accept="application/pdf">
-    <div id="loadingText" class="loading">Đang xử lý PDF... Vui lòng đợi.</div>
+    <div id="loadingText" class="loading">Đang cắt và xử lý từng câu hỏi từ PDF...</div>
   </div>
 
-  <!-- Thanh danh sách câu hỏi -->
   <div class="nav-container" id="navBar"></div>
 
-  <!-- Nội dung câu hỏi -->
   <div class="question-title" id="qTitle">Câu 1</div>
   <div class="img-box">
-    <img id="qImage" src="" alt="Vui lòng chọn file PDF để bắt đầu">
+    <img id="qImage" src="" alt="Chưa có dữ liệu câu hỏi">
   </div>
   
   <audio id="qAudio" controls src=""></audio>
 
-  <!-- Danh sách đáp án -->
   <div class="options" id="optionsBox"></div>
 
-  <!-- Nút điều hướng -->
   <div class="controls">
     <button class="ctrl-btn" id="prevBtn" onclick="changeQuestion(-1)" disabled>Câu Trước</button>
     <button class="ctrl-btn" id="nextBtn" onclick="changeQuestion(1)" disabled>Câu Tiếp</button>
@@ -69,7 +63,9 @@
     let currentIndex = 0;
     let selectedAnswers = {};
 
-    // Đọc và trích xuất dữ liệu từ File PDF
+    // Cấu hình số câu hỏi nằm trên mỗi trang PDF (VD: Part 1 thường có 2 câu/trang)
+    const QUESTIONS_PER_PAGE = 2; 
+
     document.getElementById('pdfInput').addEventListener('change', async function(e) {
       const file = e.target.files[0];
       if (!file) return;
@@ -82,41 +78,50 @@
       
       examData = [];
       selectedAnswers = {};
+      let globalQuestionNumber = 1;
 
       for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
         const page = await pdf.getPage(pageNum);
-        
-        // Chuyển trang PDF thành dạng hình ảnh DataURL
-        const viewport = page.getViewport({ scale: 1.5 });
-        const canvas = document.createElement('canvas');
-        const context = canvas.getContext('2d');
-        canvas.height = viewport.height;
-        canvas.width = viewport.width;
+        const viewport = page.getViewport({ scale: 2.0 }); // Tăng scale để ảnh nét hơn
 
-        await page.render({ canvasContext: context, viewport: viewport }).promise;
-        const imageUrl = canvas.toDataURL('image/png');
+        // 1. Tạo Canvas gốc vẽ toàn bộ trang PDF
+        const fullCanvas = document.createElement('canvas');
+        const fullCtx = fullCanvas.getContext('2d');
+        fullCanvas.height = viewport.height;
+        fullCanvas.width = viewport.width;
 
-        // Khởi tạo câu hỏi cho từng trang PDF
-        examData.push({
-          id: pageNum,
-          image: imageUrl,
-          audio: `audios/audio_${pageNum}.mp3`,
-          options: [
-            "(A) Đáp án A",
-            "(B) Đáp án B",
-            "(C) Đáp án C",
-            "(D) Đáp án D"
-          ],
-          correct: 0 // Vị trí đáp án đúng mặc định (0=A, 1=B, 2=C, 3=D)
-        });
+        await page.render({ canvasContext: fullCtx, viewport: viewport }).promise;
+
+        // 2. Chia chiều cao trang thành các phần bằng nhau theo số câu/trang
+        const sliceHeight = viewport.height / QUESTIONS_PER_PAGE;
+
+        for (let i = 0; i < QUESTIONS_PER_PAGE; i++) {
+          const cropCanvas = document.createElement('canvas');
+          const cropCtx = cropCanvas.getContext('2d');
+          cropCanvas.width = viewport.width;
+          cropCanvas.height = sliceHeight;
+
+          // Cắt vùng câu hỏi tương ứng từ Canvas gốc
+          cropCtx.drawImage(
+            fullCanvas,
+            0, i * sliceHeight, viewport.width, sliceHeight, // Vùng cắt trên ảnh gốc
+            0, 0, viewport.width, sliceHeight                // Vùng vẽ lên canvas mới
+          );
+
+          examData.push({
+            id: globalQuestionNumber,
+            image: cropCanvas.toDataURL('image/png'),
+            audio: `audios/audio_${globalQuestionNumber}.mp3`,
+            options: ["(A) Đáp án A", "(B) Đáp án B", "(C) Đáp án C", "(D) Đáp án D"],
+            correct: 0
+          });
+
+          globalQuestionNumber++;
+        }
       }
 
       loadingText.style.display = 'none';
-      
-      if (examData.length > 0) {
-        currentIndex = 0;
-        loadQuestion(0);
-      }
+      if (examData.length > 0) loadQuestion(0);
     });
 
     function renderNav() {
