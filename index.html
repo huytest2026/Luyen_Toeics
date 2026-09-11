@@ -34,7 +34,7 @@
 <body>
 
   <div class="upload-box">
-    <label for="pdfInput"><strong>Chọn file PDF câu hỏi TOEIC Part 1:</strong></label><br>
+    <label for="pdfInput"><strong>Chọn file PDF câu hỏi TOEIC:</strong></label><br>
     <input type="file" id="pdfInput" accept="application/pdf">
     <div id="loadingText" class="loading">Đang cắt ảnh từng câu hỏi từ PDF...</div>
   </div>
@@ -62,6 +62,39 @@
     let currentIndex = 0;
     let selectedAnswers = {};
 
+    // Hàm ghép link Audio chuẩn theo từng Part từ GitHub huytest2026
+    function getAudioUrl(qNum) {
+      const BASE_URL = "https://raw.githubusercontent.com/huytest2026/Luyen_Toeics/main/audios";
+
+      // Part 1: Câu 1 - 6 (1 audio / câu)
+      if (qNum <= 6) {
+        return `${BASE_URL}/part1/audio_${qNum}.mp3`;
+      }
+      // Part 2: Câu 7 - 31 (1 audio / câu)
+      if (qNum <= 31) {
+        return `${BASE_URL}/part2/audio_${qNum}.mp3`;
+      }
+      // Part 3: Câu 32 - 70 (1 audio dùng chung cho cụm 3 câu)
+      if (qNum <= 70) {
+        const startQ = Math.floor((qNum - 32) / 3) * 3 + 32;
+        return `${BASE_URL}/part3/audio_${startQ}.mp3`;
+      }
+      // Part 4: Câu 71 - 100 (1 audio dùng chung cho cụm 3 câu)
+      if (qNum <= 100) {
+        const startQ = Math.floor((qNum - 71) / 3) * 3 + 71;
+        return `${BASE_URL}/part4/audio_${startQ}.mp3`;
+      }
+      return "";
+    }
+
+    // Tự động điều chỉnh số lượng đáp án (Part 2 chỉ có 3 đáp án A, B, C)
+    function getOptionsForQuestion(qNum) {
+      if (qNum >= 7 && qNum <= 31) {
+        return ["(A) Đáp án A", "(B) Đáp án B", "(C) Đáp án C"];
+      }
+      return ["(A) Đáp án A", "(B) Đáp án B", "(C) Đáp án C", "(D) Đáp án D"];
+    }
+
     document.getElementById('pdfInput').addEventListener('change', async function(e) {
       const file = e.target.files[0];
       if (!file) return;
@@ -78,9 +111,8 @@
 
       for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
         const page = await pdf.getPage(pageNum);
-        const viewport = page.getViewport({ scale: 2.0 }); // Tăng độ nét
+        const viewport = page.getViewport({ scale: 2.0 });
 
-        // Dựng Canvas toàn bộ trang
         const fullCanvas = document.createElement('canvas');
         const fullCtx = fullCanvas.getContext('2d');
         fullCanvas.height = viewport.height;
@@ -88,34 +120,33 @@
 
         await page.render({ canvasContext: fullCtx, viewport: viewport }).promise;
 
-        // Định vị vùng ảnh dựa theo bố cục Part 1 (2 câu / 1 trang)
-        const cropWidth = viewport.width * 0.63;   // Lấy 63% chiều rộng (bỏ phần (A)(B)(C)(D) bên phải)
-        const cropHeight = viewport.height * 0.36; // Lấy 36% chiều cao cho mỗi bức ảnh
-        const cropX = viewport.width * 0.11;       // Lùi từ canh trái vào 11% (bỏ lề trắng)
+        const cropWidth = viewport.width * 0.63;
+        const cropHeight = viewport.height * 0.36;
+        const cropX = viewport.width * 0.11;
 
-        // Cắt ảnh câu hỏi 1 (Nửa trên trang)
+        // Cắt ảnh câu 1 (Nửa trên)
         const cropY1 = viewport.height * 0.08;
         const img1Data = cropCanvasArea(fullCanvas, cropX, cropY1, cropWidth, cropHeight);
         
         examData.push({
-          id: qNum++,
+          id: qNum,
           image: img1Data,
-          audio: `audios/audio_${qNum - 1}.mp3`,
-          options: ["(A) Đáp án A", "(B) Đáp án B", "(C) Đáp án C", "(D) Đáp án D"],
+          options: getOptionsForQuestion(qNum),
           correct: 0
         });
+        qNum++;
 
-        // Cắt ảnh câu hỏi 2 (Nửa dưới trang)
+        // Cắt ảnh câu 2 (Nửa dưới)
         const cropY2 = viewport.height * 0.53;
         const img2Data = cropCanvasArea(fullCanvas, cropX, cropY2, cropWidth, cropHeight);
         
         examData.push({
-          id: qNum++,
+          id: qNum,
           image: img2Data,
-          audio: `audios/audio_${qNum - 1}.mp3`,
-          options: ["(A) Đáp án A", "(B) Đáp án B", "(C) Đáp án C", "(D) Đáp án D"],
+          options: getOptionsForQuestion(qNum),
           correct: 0
         });
+        qNum++;
       }
 
       loadingText.style.display = 'none';
@@ -124,7 +155,6 @@
       }
     });
 
-    // Hàm thực hiện cắt chính xác vùng ảnh
     function cropCanvasArea(sourceCanvas, x, y, width, height) {
       const destCanvas = document.createElement('canvas');
       destCanvas.width = width;
@@ -133,8 +163,8 @@
 
       ctx.drawImage(
         sourceCanvas,
-        x, y, width, height, // Tọa độ và kích thước trên trang gốc
-        0, 0, width, height   // Tọa độ vẽ lên canvas mới
+        x, y, width, height,
+        0, 0, width, height
       );
 
       return destCanvas.toDataURL('image/png');
@@ -162,8 +192,9 @@
       document.getElementById('qTitle').innerText = `Câu ${q.id}`;
       document.getElementById('qImage').src = q.image;
       
+      // Tự động nạp Audio từ GitHub huytest2026 thông qua getAudioUrl()
       const audioPlayer = document.getElementById('qAudio');
-      audioPlayer.src = q.audio;
+      audioPlayer.src = getAudioUrl(q.id);
       audioPlayer.load();
 
       const optionsBox = document.getElementById('optionsBox');
