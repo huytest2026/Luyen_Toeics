@@ -3,16 +3,23 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Bài Thi Trắc Nghiệm TOEIC</title>
+  <title>Bài Thi Trắc Nghiệm TOEIC Từ File PDF</title>
+  <!-- Thư viện PDF.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <style>
     body { font-family: Arial, sans-serif; max-width: 750px; margin: 20px auto; padding: 0 15px; color: #333; }
+    
+    .upload-box { background: #f0f4f8; border: 2px dashed #007bff; padding: 15px; text-align: center; border-radius: 8px; margin-bottom: 20px; }
+    .upload-box input { margin-top: 10px; cursor: pointer; }
+    .loading { display: none; font-weight: bold; color: #007bff; margin-top: 10px; }
+
     .nav-container { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
     .nav-btn { padding: 8px 16px; border: 1px solid #ccc; background: #fff; border-radius: 6px; cursor: pointer; font-weight: bold; }
     .nav-btn.active { background: #007bff; color: white; border-color: #007bff; }
     
     .question-title { font-size: 20px; font-weight: bold; margin-bottom: 15px; }
-    .img-box { text-align: center; margin-bottom: 15px; background: #f8f9fa; padding: 10px; border-radius: 8px; }
-    .img-box img { max-width: 100%; max-height: 350px; border-radius: 4px; }
+    .img-box { text-align: center; margin-bottom: 15px; background: #f8f9fa; padding: 10px; border-radius: 8px; min-height: 200px; display: flex; align-items: center; justify-content: center; }
+    .img-box img { max-width: 100%; max-height: 500px; border-radius: 4px; }
     
     audio { width: 100%; margin-bottom: 15px; }
     
@@ -28,13 +35,20 @@
 </head>
 <body>
 
+  <!-- Khu vực tải file PDF -->
+  <div class="upload-box">
+    <label for="pdfInput"><strong>Chọn file PDF câu hỏi TOEIC:</strong></label><br>
+    <input type="file" id="pdfInput" accept="application/pdf">
+    <div id="loadingText" class="loading">Đang xử lý PDF... Vui lòng đợi.</div>
+  </div>
+
   <!-- Thanh danh sách câu hỏi -->
   <div class="nav-container" id="navBar"></div>
 
   <!-- Nội dung câu hỏi -->
   <div class="question-title" id="qTitle">Câu 1</div>
   <div class="img-box">
-    <img id="qImage" src="" alt="Hình ảnh câu hỏi">
+    <img id="qImage" src="" alt="Vui lòng chọn file PDF để bắt đầu">
   </div>
   
   <audio id="qAudio" controls src=""></audio>
@@ -44,41 +58,66 @@
 
   <!-- Nút điều hướng -->
   <div class="controls">
-    <button class="ctrl-btn" id="prevBtn" onclick="changeQuestion(-1)">Câu Trước</button>
-    <button class="ctrl-btn" id="nextBtn" onclick="changeQuestion(1)">Câu Tiếp</button>
+    <button class="ctrl-btn" id="prevBtn" onclick="changeQuestion(-1)" disabled>Câu Trước</button>
+    <button class="ctrl-btn" id="nextBtn" onclick="changeQuestion(1)" disabled>Câu Tiếp</button>
   </div>
 
   <script>
-    // Khai báo dữ liệu bài thi
-    const examData = [
-      {
-        id: 1,
-        image: "images/img_1.png",
-        audio: "audios/audio_1.mp3",
-        options: [
-          "(A) Items are being placed on shelves.",
-          "(B) Boxes are stacked in the warehouse.",
-          "(C) The floor is being swept.",
-          "(D) Trucks are loading goods."
-        ],
-        correct: 1 // Đáp án B (chỉ số 1: 0=A, 1=B, 2=C, 3=D)
-      },
-      {
-        id: 2,
-        image: "images/img_2.png",
-        audio: "audios/audio_2.mp3",
-        options: [
-          "(A) She is working on a computer.",
-          "(B) She is talking on the phone.",
-          "(C) She is writing in a notebook.",
-          "(D) She is holding a cup."
-        ],
-        correct: 0 // Đáp án A
-      }
-    ];
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
+    let examData = [];
     let currentIndex = 0;
     let selectedAnswers = {};
+
+    // Đọc và trích xuất dữ liệu từ File PDF
+    document.getElementById('pdfInput').addEventListener('change', async function(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const loadingText = document.getElementById('loadingText');
+      loadingText.style.display = 'block';
+
+      const arrayBuffer = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      
+      examData = [];
+      selectedAnswers = {};
+
+      for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+        const page = await pdf.getPage(pageNum);
+        
+        // Chuyển trang PDF thành dạng hình ảnh DataURL
+        const viewport = page.getViewport({ scale: 1.5 });
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d');
+        canvas.height = viewport.height;
+        canvas.width = viewport.width;
+
+        await page.render({ canvasContext: context, viewport: viewport }).promise;
+        const imageUrl = canvas.toDataURL('image/png');
+
+        // Khởi tạo câu hỏi cho từng trang PDF
+        examData.push({
+          id: pageNum,
+          image: imageUrl,
+          audio: `audios/audio_${pageNum}.mp3`,
+          options: [
+            "(A) Đáp án A",
+            "(B) Đáp án B",
+            "(C) Đáp án C",
+            "(D) Đáp án D"
+          ],
+          correct: 0 // Vị trí đáp án đúng mặc định (0=A, 1=B, 2=C, 3=D)
+        });
+      }
+
+      loadingText.style.display = 'none';
+      
+      if (examData.length > 0) {
+        currentIndex = 0;
+        loadQuestion(0);
+      }
+    });
 
     function renderNav() {
       const navBar = document.getElementById('navBar');
@@ -93,6 +132,8 @@
     }
 
     function loadQuestion(index) {
+      if (examData.length === 0) return;
+
       currentIndex = index;
       renderNav();
 
@@ -112,7 +153,6 @@
         btn.className = 'option-btn';
         btn.innerText = optText;
 
-        // Nếu câu hỏi này đã được chọn đáp án trước đó
         if (selectedAnswers[currentIndex] !== undefined) {
           if (optIdx === q.correct) btn.classList.add('correct');
           if (optIdx === selectedAnswers[currentIndex] && optIdx !== q.correct) btn.classList.add('wrong');
@@ -120,7 +160,7 @@
 
         btn.onclick = () => {
           selectedAnswers[currentIndex] = optIdx;
-          loadQuestion(currentIndex); // Render lại để hiện màu đúng/sai
+          loadQuestion(currentIndex);
         };
 
         optionsBox.appendChild(btn);
@@ -136,9 +176,6 @@
         loadQuestion(newIndex);
       }
     }
-
-    // Khởi chạy câu đầu tiên
-    loadQuestion(0);
   </script>
 </body>
 </html>
