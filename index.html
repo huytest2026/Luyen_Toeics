@@ -3,96 +3,95 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Bài Thi Trắc Nghiệm TOEIC - Trích Ảnh Chuẩn</title>
+  <title>Luyện Thi TOEIC - Tự Động Chia Cụm Câu Hỏi</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <style>
-    body { font-family: Arial, sans-serif; max-width: 800px; margin: 20px auto; padding: 0 15px; color: #333; }
+    body { font-family: Arial, sans-serif; max-width: 850px; margin: 20px auto; padding: 0 15px; color: #333; background-color: #f4f6f9; }
     
-    .upload-box { background: #f0f4f8; border: 2px dashed #007bff; padding: 15px; text-align: center; border-radius: 8px; margin-bottom: 20px; }
+    .upload-box { background: #ffffff; border: 2px dashed #007bff; padding: 20px; text-align: center; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+    .select-part { margin-bottom: 12px; font-size: 15px; }
+    .select-part select { padding: 6px 12px; border-radius: 6px; border: 1px solid #007bff; font-weight: bold; color: #007bff; }
     .loading { display: none; font-weight: bold; color: #007bff; margin-top: 10px; }
 
-    .nav-container { display: flex; gap: 6px; margin-bottom: 20px; flex-wrap: wrap; max-height: 150px; overflow-y: auto; padding: 8px; border: 1px solid #ddd; border-radius: 6px; }
-    .nav-btn { width: 36px; height: 36px; border: 1px solid #ccc; background: #fff; border-radius: 4px; cursor: pointer; font-weight: bold; }
+    .nav-container { display: flex; gap: 6px; margin-bottom: 20px; flex-wrap: wrap; max-height: 140px; overflow-y: auto; padding: 10px; background: #fff; border: 1px solid #ddd; border-radius: 8px; }
+    .nav-btn { width: 38px; height: 38px; border: 1px solid #ccc; background: #fff; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.2s; }
     .nav-btn.active { background: #007bff; color: white; border-color: #007bff; }
+    .nav-btn.answered { border-color: #28a745; background-color: #e8f5e9; color: #28a745; }
+    .nav-btn.active.answered { background: #007bff; color: white; }
+
+    .question-title { font-size: 20px; font-weight: bold; margin-bottom: 12px; color: #1a252f; }
+    .img-box { text-align: center; margin-bottom: 15px; background: #fff; padding: 10px; border: 1px solid #ddd; border-radius: 8px; }
+    .img-box img { max-width: 100%; height: auto; max-height: 450px; border-radius: 4px; }
     
-    .question-title { font-size: 20px; font-weight: bold; margin-bottom: 12px; }
-    .img-box { text-align: center; margin-bottom: 15px; background: #f8f9fa; padding: 10px; border: 1px solid #ddd; border-radius: 8px; }
-    .img-box img { max-width: 100%; height: auto; max-height: 420px; border-radius: 4px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
+    audio { width: 100%; margin-bottom: 20px; }
     
-    audio { width: 100%; margin-bottom: 15px; }
-    
-    .options { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
-    .option-btn { text-align: left; padding: 12px 15px; border: 1px solid #ddd; background: #fff; border-radius: 6px; cursor: pointer; font-size: 15px; }
-    .option-btn.correct { background: #28a745; color: white; border-color: #28a745; font-weight: bold; }
-    .option-btn.wrong { background: #dc3545; color: white; border-color: #dc3545; font-weight: bold; }
-    
-    .controls { display: flex; justify-content: space-between; }
-    .ctrl-btn { padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; background: #007bff; color: white; }
-    .ctrl-btn:disabled { background: #ccc; cursor: not-allowed; }
+    /* Khung chứa các câu hỏi phụ trong cụm */
+    .sub-question-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; margin-bottom: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+    .sub-q-title { font-weight: bold; font-size: 16px; margin-bottom: 10px; color: #007bff; }
+    .sub-q-options { display: flex; gap: 10px; }
+    .option-btn-sub { flex: 1; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; background: #f8fafc; cursor: pointer; font-size: 15px; font-weight: bold; transition: 0.2s; }
+    .option-btn-sub:hover { background: #e2e8f0; }
+    .option-btn-sub.selected { background: #007bff; color: white; border-color: #007bff; }
+
+    .controls { display: flex; justify-content: space-between; margin-top: 20px; }
+    .ctrl-btn { padding: 12px 24px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; background: #007bff; color: white; }
+    .ctrl-btn:disabled { background: #cbd5e1; cursor: not-allowed; }
   </style>
 </head>
 <body>
 
   <div class="upload-box">
-    <label for="pdfInput"><strong>Chọn file PDF câu hỏi TOEIC:</strong></label><br>
+    <div class="select-part">
+      <label for="partSelect"><strong>Chọn Dạng Bài TOEIC:</strong></label>
+      <select id="partSelect">
+        <option value="part1">Part 1 (1 câu / ảnh - Đáp án A, B, C, D)</option>
+        <option value="part2" selected>Part 2 (3 câu / cụm - Đáp án A, B, C)</option>
+        <option value="part3_4">Part 3 & 4 (3 câu / cụm - Đáp án A, B, C, D)</option>
+      </select>
+    </div>
+
+    <label for="pdfInput"><strong>Chọn file PDF đề thi:</strong></label><br><br>
     <input type="file" id="pdfInput" accept="application/pdf">
-    <div id="loadingText" class="loading">Đang cắt ảnh từng câu hỏi từ PDF...</div>
+    <div id="loadingText" class="loading">Đang tải và cắt câu hỏi từ PDF...</div>
   </div>
 
   <div class="nav-container" id="navBar"></div>
 
-  <div class="question-title" id="qTitle">Câu 1</div>
+  <div class="question-title" id="qTitle">Câu hỏi</div>
   <div class="img-box">
     <img id="qImage" src="" alt="Vui lòng chọn file PDF để bắt đầu">
   </div>
   
   <audio id="qAudio" controls src=""></audio>
 
-  <div class="options" id="optionsBox"></div>
+  <!-- Nơi hiển thị các dòng chọn đáp án cho từng câu trong cụm -->
+  <div id="optionsBox"></div>
 
   <div class="controls">
-    <button class="ctrl-btn" id="prevBtn" onclick="changeQuestion(-1)" disabled>Câu Trước</button>
-    <button class="ctrl-btn" id="nextBtn" onclick="changeQuestion(1)" disabled>Câu Tiếp</button>
+    <button class="ctrl-btn" id="prevBtn" onclick="changeGroup(-1)" disabled>Cụm Trước</button>
+    <button class="ctrl-btn" id="nextBtn" onclick="changeGroup(1)" disabled>Cụm Tiếp</button>
   </div>
 
   <script>
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-    let examData = [];
-    let currentIndex = 0;
-    let selectedAnswers = {};
+    let examGroups = [];
+    let currentGroupIndex = 0;
+    let selectedAnswers = {}; // Lưu đáp án theo số thứ tự câu { 1: 0, 2: 1, ... }
 
-    // Hàm ghép link Audio chuẩn theo từng Part từ GitHub huytest2026
     function getAudioUrl(qNum) {
       const BASE_URL = "https://raw.githubusercontent.com/huytest2026/Luyen_Toeics/main/audios";
-
-      // Part 1: Câu 1 - 6 (1 audio / câu)
-      if (qNum <= 6) {
-        return `${BASE_URL}/part1/audio_${qNum}.mp3`;
-      }
-      // Part 2: Câu 7 - 31 (1 audio / câu)
-      if (qNum <= 31) {
-        return `${BASE_URL}/part2/audio_${qNum}.mp3`;
-      }
-      // Part 3: Câu 32 - 70 (1 audio dùng chung cho cụm 3 câu)
+      if (qNum <= 6) return `${BASE_URL}/part1/audio_${qNum}.mp3`;
+      if (qNum <= 31) return `${BASE_URL}/part2/audio_${qNum}.mp3`;
       if (qNum <= 70) {
         const startQ = Math.floor((qNum - 32) / 3) * 3 + 32;
         return `${BASE_URL}/part3/audio_${startQ}.mp3`;
       }
-      // Part 4: Câu 71 - 100 (1 audio dùng chung cho cụm 3 câu)
       if (qNum <= 100) {
         const startQ = Math.floor((qNum - 71) / 3) * 3 + 71;
         return `${BASE_URL}/part4/audio_${startQ}.mp3`;
       }
       return "";
-    }
-
-    // Tự động điều chỉnh số lượng đáp án (Part 2 chỉ có 3 đáp án A, B, C)
-    function getOptionsForQuestion(qNum) {
-      if (qNum >= 7 && qNum <= 31) {
-        return ["(A) Đáp án A", "(B) Đáp án B", "(C) Đáp án C"];
-      }
-      return ["(A) Đáp án A", "(B) Đáp án B", "(C) Đáp án C", "(D) Đáp án D"];
     }
 
     document.getElementById('pdfInput').addEventListener('change', async function(e) {
@@ -102,12 +101,16 @@
       const loadingText = document.getElementById('loadingText');
       loadingText.style.display = 'block';
 
+      const partType = document.getElementById('partSelect').value;
+      const questionsPerCrop = partType === 'part1' ? 1 : 3;
+      const optionsCount = partType === 'part2' ? 3 : 4;
+
       const arrayBuffer = await file.arrayBuffer();
       const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
       
-      examData = [];
+      examGroups = [];
       selectedAnswers = {};
-      let qNum = 1;
+      let qGlobalNum = 1;
 
       for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
         const page = await pdf.getPage(pageNum);
@@ -120,38 +123,38 @@
 
         await page.render({ canvasContext: fullCtx, viewport: viewport }).promise;
 
-        const cropWidth = viewport.width * 0.63;
-        const cropHeight = viewport.height * 0.36;
-        const cropX = viewport.width * 0.11;
+        const cropWidth = viewport.width * 0.80;
+        const cropHeight = viewport.height * 0.42;
+        const cropX = viewport.width * 0.10;
 
-        // Cắt ảnh câu 1 (Nửa trên)
-        const cropY1 = viewport.height * 0.08;
-        const img1Data = cropCanvasArea(fullCanvas, cropX, cropY1, cropWidth, cropHeight);
+        // Cắt cụm 1 (Nửa trên)
+        const img1Data = cropCanvasArea(fullCanvas, cropX, viewport.height * 0.05, cropWidth, cropHeight);
+        let qList1 = [];
+        for (let i = 0; i < questionsPerCrop; i++) qList1.push(qGlobalNum++);
         
-        examData.push({
-          id: qNum,
+        examGroups.push({
+          questions: qList1,
           image: img1Data,
-          options: getOptionsForQuestion(qNum),
-          correct: 0
+          optionsCount: optionsCount,
+          audioUrl: getAudioUrl(qList1[0])
         });
-        qNum++;
 
-        // Cắt ảnh câu 2 (Nửa dưới)
-        const cropY2 = viewport.height * 0.53;
-        const img2Data = cropCanvasArea(fullCanvas, cropX, cropY2, cropWidth, cropHeight);
-        
-        examData.push({
-          id: qNum,
+        // Cắt cụm 2 (Nửa dưới)
+        const img2Data = cropCanvasArea(fullCanvas, cropX, viewport.height * 0.50, cropWidth, cropHeight);
+        let qList2 = [];
+        for (let i = 0; i < questionsPerCrop; i++) qList2.push(qGlobalNum++);
+
+        examGroups.push({
+          questions: qList2,
           image: img2Data,
-          options: getOptionsForQuestion(qNum),
-          correct: 0
+          optionsCount: optionsCount,
+          audioUrl: getAudioUrl(qList2[0])
         });
-        qNum++;
       }
 
       loadingText.style.display = 'none';
-      if (examData.length > 0) {
-        loadQuestion(0);
+      if (examGroups.length > 0) {
+        loadGroup(0);
       }
     });
 
@@ -160,72 +163,90 @@
       destCanvas.width = width;
       destCanvas.height = height;
       const ctx = destCanvas.getContext('2d');
-
-      ctx.drawImage(
-        sourceCanvas,
-        x, y, width, height,
-        0, 0, width, height
-      );
-
+      ctx.drawImage(sourceCanvas, x, y, width, height, 0, 0, width, height);
       return destCanvas.toDataURL('image/png');
     }
 
     function renderNav() {
       const navBar = document.getElementById('navBar');
       navBar.innerHTML = '';
-      examData.forEach((q, idx) => {
-        const btn = document.createElement('button');
-        btn.className = `nav-btn ${idx === currentIndex ? 'active' : ''}`;
-        btn.innerText = q.id;
-        btn.onclick = () => loadQuestion(idx);
-        navBar.appendChild(btn);
+
+      examGroups.forEach((group, gIdx) => {
+        group.questions.forEach((qNum) => {
+          const btn = document.createElement('button');
+          const isAnswered = selectedAnswers[qNum] !== undefined;
+          const isActive = gIdx === currentGroupIndex;
+
+          btn.className = `nav-btn ${isActive ? 'active' : ''} ${isAnswered ? 'answered' : ''}`;
+          btn.innerText = qNum;
+          btn.onclick = () => loadGroup(gIdx);
+          navBar.appendChild(btn);
+        });
       });
     }
 
-    function loadQuestion(index) {
-      if (examData.length === 0) return;
+    function loadGroup(groupIndex) {
+      if (examGroups.length === 0) return;
 
-      currentIndex = index;
-      renderNav();
+      currentGroupIndex = groupIndex;
+      const group = examGroups[currentGroupIndex];
 
-      const q = examData[currentIndex];
-      document.getElementById('qTitle').innerText = `Câu ${q.id}`;
-      document.getElementById('qImage').src = q.image;
+      // Đặt tiêu đề (Ví dụ: Câu 1 - 3 hoặc Câu 1)
+      const firstQ = group.questions[0];
+      const lastQ = group.questions[group.questions.length - 1];
+      document.getElementById('qTitle').innerText = firstQ === lastQ ? `Câu ${firstQ}` : `Câu ${firstQ} - ${lastQ}`;
       
-      // Tự động nạp Audio từ GitHub huytest2026 thông qua getAudioUrl()
+      document.getElementById('qImage').src = group.image;
+
+      // Audio
       const audioPlayer = document.getElementById('qAudio');
-      audioPlayer.src = getAudioUrl(q.id);
+      audioPlayer.src = group.audioUrl;
       audioPlayer.load();
 
+      // Render danh sách câu hỏi lựa chọn
       const optionsBox = document.getElementById('optionsBox');
       optionsBox.innerHTML = '';
 
-      q.options.forEach((optText, optIdx) => {
-        const btn = document.createElement('button');
-        btn.className = 'option-btn';
-        btn.innerText = optText;
+      const labels = group.optionsCount === 3 ? ['(A)', '(B)', '(C)'] : ['(A)', '(B)', '(C)', '(D)'];
 
-        if (selectedAnswers[currentIndex] !== undefined) {
-          if (optIdx === q.correct) btn.classList.add('correct');
-          if (optIdx === selectedAnswers[currentIndex] && optIdx !== q.correct) btn.classList.add('wrong');
-        }
+      group.questions.forEach((qNum) => {
+        const card = document.createElement('div');
+        card.className = 'sub-question-card';
 
-        btn.onclick = () => {
-          selectedAnswers[currentIndex] = optIdx;
-          loadQuestion(currentIndex);
-        };
+        const title = document.createElement('div');
+        title.className = 'sub-q-title';
+        title.innerText = `Câu ${qNum}:`;
+        card.appendChild(title);
 
-        optionsBox.appendChild(btn);
+        const optionsDiv = document.createElement('div');
+        optionsDiv.className = 'sub-q-options';
+
+        labels.forEach((label, optIdx) => {
+          const btn = document.createElement('button');
+          btn.className = `option-btn-sub ${selectedAnswers[qNum] === optIdx ? 'selected' : ''}`;
+          btn.innerText = label;
+
+          btn.onclick = () => {
+            selectedAnswers[qNum] = optIdx;
+            loadGroup(currentGroupIndex); // Render lại để cập nhật trạng thái chọn
+          };
+
+          optionsDiv.appendChild(btn);
+        });
+
+        card.appendChild(optionsDiv);
+        optionsBox.appendChild(card);
       });
 
-      document.getElementById('prevBtn').disabled = currentIndex === 0;
-      document.getElementById('nextBtn').disabled = currentIndex === examData.length - 1;
+      renderNav();
+      document.getElementById('prevBtn').disabled = currentGroupIndex === 0;
+      document.getElementById('nextBtn').disabled = currentGroupIndex === examGroups.length - 1;
     }
 
-    function changeQuestion(step) {
-      const newIndex = currentIndex + step;
-      if (newIndex >= 0 && newIndex < examData.length) {
-        loadQuestion(newIndex);
+    function changeGroup(step) {
+      const newIndex = currentGroupIndex + step;
+      if (newIndex >= 0 && newIndex < examGroups.length) {
+        loadGroup(newIndex);
       }
     }
   </script>
