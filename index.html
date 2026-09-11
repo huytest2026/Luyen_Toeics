@@ -1,1102 +1,144 @@
 <!DOCTYPE html>
-<html>
+<html lang="vi">
 <head>
-  <base target="_top">
-  <meta charset="utf-8">
-  <title>Hệ Thống Quản Lý Ca Trực & Sự Cố Cáp Quang</title>
-  
-  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-  <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-  <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/page-flip@2.0.7/dist/js/page-flip.browser.js"></script>
-
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bài Thi Trắc Nghiệm TOEIC</title>
   <style>
-    body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background-color: #f4f6f9; color: #333; }
-    .container { max-width: 1250px; margin: 0 auto; background: #fff; padding: 25px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+    body { font-family: Arial, sans-serif; max-width: 750px; margin: 20px auto; padding: 0 15px; color: #333; }
+    .nav-container { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+    .nav-btn { padding: 8px 16px; border: 1px solid #ccc; background: #fff; border-radius: 6px; cursor: pointer; font-weight: bold; }
+    .nav-btn.active { background: #007bff; color: white; border-color: #007bff; }
     
-    .tab-header { display: flex; border-bottom: 2px solid #ddd; margin-bottom: 25px; flex-wrap: wrap; gap: 5px; }
-    .tab-btn { padding: 12px 20px; cursor: pointer; background: #e9ecef; border: none; border-top-left-radius: 6px; border-top-right-radius: 6px; font-weight: bold; font-size: 14px; color: #495057; outline: none; transition: all 0.2s; }
-    .tab-btn.active { background: #1976d2; color: white; box-shadow: 0 -2px 5px rgba(0,0,0,0.1); }
-    .tab-content { display: none; }
-    .tab-content.active { display: block; }
+    .question-title { font-size: 20px; font-weight: bold; margin-bottom: 15px; }
+    .img-box { text-align: center; margin-bottom: 15px; background: #f8f9fa; padding: 10px; border-radius: 8px; }
+    .img-box img { max-width: 100%; max-height: 350px; border-radius: 4px; }
     
-    .form-row { display: flex; gap: 15px; margin-bottom: 15px; flex-wrap: wrap; }
-    .form-group { flex: 1; min-width: 220px; }
-    label { display: block; margin-bottom: 6px; font-weight: bold; color: #333; font-size: 14px; }
-    input, select, textarea { width: 100%; padding: 10px 12px; box-sizing: border-box; border: 1px solid #ced4da; border-radius: 4px; font-size: 14px; background: #fff; }
-    input:focus, select:focus, textarea:focus { border-color: #1976d2; outline: none; box-shadow: 0 0 0 3px rgba(25,118,210,0.15); }
+    audio { width: 100%; margin-bottom: 15px; }
     
-    .select2-container .select2-selection--multiple {
-        min-height: 38px;
-        border: 1px solid #ced4da;
-        border-radius: 4px;
-        padding: 2px;
-    }
-    .select2-container--default.select2-container--focus .select2-selection--multiple {
-        border-color: #1976d2;
-    }
-
-    .red-frame-cell { border: 1px solid #ffe0b2 !important; background-color: #fffde7 !important; }
-    .notes-edit-box { margin-top: 20px; background: #fffde7; border: 1px solid #ffe0b2; padding: 15px; border-radius: 6px; }
+    .options { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+    .option-btn { text-align: left; padding: 12px 15px; border: 1px solid #ddd; background: #fff; border-radius: 6px; cursor: pointer; font-size: 15px; }
+    .option-btn.correct { background: #28a745; color: white; border-color: #28a745; font-weight: bold; }
+    .option-btn.wrong { background: #dc3545; color: white; border-color: #dc3545; font-weight: bold; }
     
-    .btn-action { 
-      background: linear-gradient(135deg, #1976d2, #1565c0); 
-      color: white; padding: 12px 28px; border: none; border-radius: 6px; 
-      cursor: pointer; font-weight: bold; font-size: 16px; 
-      box-shadow: 0 4px 8px rgba(25, 118, 210, 0.3); transition: all 0.25s ease;
-      display: inline-flex; align-items: center; gap: 8px;
-    }
-    .btn-action:hover { background: linear-gradient(135deg, #1565c0, #0d47a1); box-shadow: 0 6px 12px rgba(25, 118, 210, 0.4); transform: translateY(-2px); }
-
-    .btn-success-action { background: linear-gradient(135deg, #2e7d32, #1b5e20); box-shadow: 0 4px 8px rgba(46, 125, 50, 0.3); }
-    .btn-success-action:hover { background: linear-gradient(135deg, #1b5e20, #103912); box-shadow: 0 6px 12px rgba(46, 125, 50, 0.4); }
-
-    .header-box { border-bottom: 2px solid #eee; margin-bottom: 20px; padding-bottom: 8px; }
-    .table-responsive { overflow-x: auto; margin-top: 15px; border-radius: 6px; border: 1px solid #e0e0e0; }
-    table { width: 100%; border-collapse: collapse; font-size: 13px; background: #fff; }
-    th, td { border: 1px solid #e0e0e0; padding: 10px 12px; text-align: left; }
-    th { background-color: #f8f9fa; color: #333; font-weight: bold; }
-    tr:nth-child(even) { background-color: #fbfbfb; }
-
-    .phan-ca-table th { background-color: #fff9c4 !important; color: #5d4037 !important; border-color: #ffe0b2 !important; }
-    .phan-ca-table td { border-color: #ffe0b2 !important; }
-    .phan-ca-table tr:nth-child(even) { background-color: #fffde7 !important; }
-    .phan-ca-table tr:nth-child(odd) { background-color: #ffffff !important; }
-
-    .loading { color: #1976d2; font-style: italic; font-weight: bold; padding: 10px 0; }
-    .map-link { color: #1976d2; text-decoration: underline; cursor: pointer; font-weight: bold; }
-    
-    #mapSuCoContainer, #mapSoHoaContainer { margin-top: 25px; display: none; }
-    #mapSuCo, #mapSoHoa { height: 480px; width: 100%; border-radius: 6px; border: 1px solid #ccc; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
-    
-    .map-label-tag { background: transparent !important; border: none !important; box-shadow: none !important; font-size: 13px; font-weight: bold; color: #d32f2f !important; white-space: nowrap; text-shadow: 1px 1px 2px #fff, -1px -1px 2px #fff, 1px -1px 2px #fff, -1px 1px 2px #fff; }
-    .checkbox-group { display: flex; align-items: center; gap: 10px; margin: 15px 0; background: #f8f9fa; padding: 12px 15px; border-radius: 6px; border: 1px solid #e9ecef; }
-    .checkbox-group input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; }
-    .checkbox-group label { margin-bottom: 0; cursor: pointer; font-weight: normal; font-size: 14px; }
-
-    #flipbook-wrapper { display: flex; flex-direction: column; align-items: center; margin-top: 20px; }
-    #book { background-color: #fdfdfd; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
-    .page { background-color: #fff; color: #333; border: 1px solid #dcdcdc; padding: 18px 20px; box-sizing: border-box; overflow: hidden; display: flex; flex-direction: column; justify-content: space-between; }
-    .page-cover { background: linear-gradient(135deg, #4a148c, #7b1fa2); color: white; text-align: center; justify-content: center; }
-    .page h3 { color: #4a148c; border-bottom: 2px solid #7b1fa2; padding-bottom: 4px; margin-top: 0; margin-bottom: 10px; font-size: 15px; }
-    .page-body { font-size: 12px; line-height: 1.4; color: #444; word-break: break-word; overflow-y: auto; max-height: 480px; padding-right: 4px; }
-    .page-footer { font-size: 11px; color: #888; text-align: right; border-top: 1px solid #eee; padding-top: 6px; margin-top: 5px; }
-    .flip-controls { margin-top: 20px; display: flex; gap: 15px; align-items: center; }
+    .controls { display: flex; justify-content: space-between; }
+    .ctrl-btn { padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; background: #007bff; color: white; }
+    .ctrl-btn:disabled { background: #ccc; cursor: not-allowed; }
   </style>
 </head>
 <body>
-  <div class="container">
-    <div class="tab-header">
-      <button class="tab-btn active" onclick="openTab(event, 'tabPhanCa')">📅 PHÂN CA TRỰC</button>
-      <button class="tab-btn" onclick="openTab(event, 'tabTinhCong')">📊 TÍNH CÔNG TRỰC</button>
-      <button class="tab-btn" onclick="openTab(event, 'tabGiaoCa')">📑 SỔ GIAO CA TRỰC</button>
-      <button class="tab-btn" onclick="openTab(event, 'tabSuCo')">⚡ TRA CỨU SỰ CỐ</button>
-      <button class="tab-btn" onclick="openTab(event, 'tabSoHoa')">🌐 SỔ HÓA CÁP QUANG</button>
-      <button class="tab-btn" onclick="openTab(event, 'tabVatTu')">📦 THEO DÕI VẬT TƯ</button>
-      <button class="tab-btn" onclick="openTab(event, 'tabFlipbook')">📖 SỔ CA ĐIỆN TỬ</button>
-    </div>
 
-    <!-- TAB 0: PHÂN CA TRỰC -->
-    <div id="tabPhanCa" class="tab-content active">
-      <div class="header-box">
-        <h2 style="color: #1976d2; margin: 0;">LỊCH PHÂN CA TRỰC TUẦN</h2>
-      </div>
-      <div class="form-row" style="align-items: flex-end;">
-        <div class="form-group">
-          <label>Chọn tuần (Ngày Thứ Hai đầu tuần):</label>
-          <input type="date" id="pcTuanBatDau">
-        </div>
-        <div class="form-group" style="display: flex; gap: 10px; align-items: flex-end;">
-          <button type="button" class="btn-action" onclick="loadPhanCaTable()">📥 Xem Phân Ca</button>
-          <button type="button" class="btn-action btn-success-action" onclick="switchToEditPhanCa()">✏️ Nhập / Sửa Ca</button>
-        </div>
-      </div>
-      <div id="phanCaResult" style="margin-top: 20px;"></div>
-    </div>
+  <!-- Thanh danh sách câu hỏi -->
+  <div class="nav-container" id="navBar"></div>
 
-    <!-- TAB 1: TÍNH CÔNG TRỰC -->
-    <div id="tabTinhCong" class="tab-content">
-      <div class="header-box">
-        <h2 style="color: #2e7d32; margin: 0;">THỐNG KÊ & TÍNH CÔNG NHÂN VIÊN</h2>
-      </div>
-      <div class="form-row" style="align-items: flex-end;">
-        <div class="form-group">
-          <label>Từ ngày:</label>
-          <input type="date" id="tcTuNgay">
-        </div>
-        <div class="form-group">
-          <label>Đến ngày:</label>
-          <input type="date" id="tcDenNgay">
-        </div>
-        <div class="form-group" style="display: flex; gap: 10px; align-items: flex-end;">
-          <button type="button" class="btn-action btn-success-action" onclick="loadBangTinhCong()">📊 Thống Kê Công</button>
-        </div>
-      </div>
-      <div id="tinhCongResult" style="margin-top: 20px;"></div>
-    </div>
+  <!-- Nội dung câu hỏi -->
+  <div class="question-title" id="qTitle">Câu 1</div>
+  <div class="img-box">
+    <img id="qImage" src="" alt="Hình ảnh câu hỏi">
+  </div>
+  
+  <audio id="qAudio" controls src=""></audio>
 
-    <!-- TAB 2: SỔ GIAO CA TRỰC -->
-    <div id="tabGiaoCa" class="tab-content">
-      <div class="header-box">
-        <h2 style="color: #1976d2; margin: 0;">NHẬT KÝ & BÀN GIAO CA TRỰC</h2>
-      </div>
-      <div class="form-row">
-        <div class="form-group">
-          <label>Ngày giao ca:</label>
-          <input type="date" id="gcNgayGiao">
-        </div>
-        <div class="form-group">
-          <label>Ca trực:</label>
-          <select id="gcCaTruc">
-            <option value="Ca 1">Ca 1 (07:00 - 15:00)</option>
-            <option value="Ca 2">Ca 2 (15:00 - 23:00)</option>
-            <option value="Ca 3">Ca 3 (23:00 - 07:00)</option>
-          </select>
-        </div>
-      </div>
-      <button type="button" class="btn-action" onclick="loadShiftData()">📥 Tải Dữ Liệu Ca Trực</button>
+  <!-- Danh sách đáp án -->
+  <div class="options" id="optionsBox"></div>
 
-      <form id="handoverForm" style="margin-top: 20px;" onsubmit="submitHandover(event)">
-        <div class="form-row">
-          <div class="form-group">
-            <label>Người giao:</label>
-            <select id="gcNguoiGiao" required></select>
-          </div>
-          <div class="form-group">
-            <label>Người nhận:</label>
-            <select id="gcNguoiNhan" required></select>
-          </div>
-        </div>
-        <div class="form-group" style="margin-bottom: 15px;">
-          <label>2.1. Công việc thường xuyên / Bảo dưỡng:</label>
-          <textarea id="gcCongViecTX" rows="3"></textarea>
-        </div>
-        <div class="form-group" style="margin-bottom: 15px;">
-          <label>2.2. Tình hình thông tin & sự cố:</label>
-          <textarea id="gcNoiDungCV" rows="3"></textarea>
-        </div>
-        <div class="form-group" style="margin-bottom: 15px;">
-          <label>2.4. Tồn tại cần xử lý:</label>
-          <textarea id="gcTonTai" rows="3"></textarea>
-        </div>
-        <button type="submit" class="btn-action btn-success-action">💾 Lưu & Tạo Biên Bản Bàn Giao</button>
-      </form>
-      <div id="handoverResult" style="margin-top: 15px;"></div>
-    </div>
-
-    <!-- TAB 3: TRA CỨU SỰ CỐ -->
-    <div id="tabSuCo" class="tab-content">
-      <div class="header-box">
-        <h2 style="color: #d32f2f; margin: 0;">TRA CỨU SỰ CỐ CÁP QUANG</h2>
-      </div>
-      <div class="form-row">
-        <div class="form-group">
-          <label>Link:</label>
-          <select id="scLink"><option value="">-- Tất cả Link --</option></select>
-        </div>
-        <div class="form-group">
-          <label>Tuyến cáp:</label>
-          <select id="scTuyenCap"><option value="">-- Tất cả Tuyến cáp --</option></select>
-        </div>
-        <div class="form-group">
-          <label>Khoảng cách đo OTDR (km):</label>
-          <input type="text" id="scOtdr" placeholder="Ví dụ: 12.345">
-        </div>
-      </div>
-
-      <div class="checkbox-group">
-        <input type="checkbox" id="scOnlyNearest" checked>
-        <label for="scOnlyNearest">
-          <b>Chỉ hiển thị điểm sự cố gần nhất khớp với thông số OTDR</b> 
-          <span style="color: #d32f2f; font-weight: bold; margin-left: 5px;">(Tìm điểm gần nhất)</span>
-        </label>
-      </div>
-
-      <button type="button" class="btn-action" onclick="doSearchSuCo()">🔍 TRA CỨU SỰ CỐ</button>
-
-      <div id="mapSuCoContainer">
-        <h3 id="mapSuCoTitle" style="color: #d32f2f; margin-bottom: 8px;">⚡ BẢN ĐỒ SỰ CỐ CÁP QUANG</h3>
-        <div id="mapSuCo"></div>
-      </div>
-
-      <div id="suCoResult" style="margin-top: 15px;"></div>
-    </div>
-
-    <!-- TAB 4: SỔ HÓA CÁP QUANG -->
-    <div id="tabSoHoa" class="tab-content">
-      <div class="header-box">
-        <h2 style="color: #2e7d32; margin: 0;">TRA CỨU DỮ LIỆU SỔ HÓA CÁP QUANG</h2>
-      </div>
-      <div class="form-row">
-        <div class="form-group">
-          <label>Link:</label>
-          <select id="shLink"><option value="">-- Tất cả Link --</option></select>
-        </div>
-        <div class="form-group">
-          <label>Tuyến cáp:</label>
-          <select id="shTuyenCap"><option value="">-- Tất cả Tuyến cáp --</option></select>
-        </div>
-        <div class="form-group">
-          <label>Từ khóa tìm kiếm:</label>
-          <input type="text" id="shKeyword" placeholder="Nhập từ khóa cần tìm...">
-        </div>
-      </div>
-      
-      <button type="button" class="btn-action btn-success-action" onclick="doSearchSoHoa()">🔍 TRA CỨU SỔ HÓA</button>
-
-      <div id="mapSoHoaContainer">
-        <h3 id="mapSoHoaTitle" style="color: #2e7d32; margin-bottom: 8px;">📖 BẢN ĐỒ SỔ HÓA CÁP QUANG</h3>
-        <div id="mapSoHoa"></div>
-      </div>
-
-      <div id="soHoaResult"></div>
-    </div>
-
-    <!-- TAB 5: THEO DÕI VẬT TƯ -->
-    <div id="tabVatTu" class="tab-content">
-      <div class="header-box">
-        <h2 style="color: #e65100; margin: 0;">TRA CỨU VẬT TƯ VẬN HÀNH</h2>
-      </div>
-      <div class="form-row">
-        <div class="form-group">
-          <label>Lĩnh vực:</label>
-          <select id="vtLinhVuc" onchange="filterVatTuByLinhVuc()">
-            <option value="">-- Tất cả Lĩnh vực --</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label>Tên tắt / Tên vật tư:</label>
-          <input type="text" id="vtKeyword" placeholder="Nhập tên vật tư cần tìm..." oninput="doSearchVatTuLocal()">
-        </div>
-      </div>
-      <button type="button" class="btn-action" style="background: linear-gradient(135deg, #ef6c00, #e65100);" onclick="doSearchVatTuLocal()">🔍 TRA CỨU VẬT TƯ</button>
-      <div id="vatTuResult" style="margin-top: 15px;"></div>
-    </div>
-
-    <!-- TAB 6: SỔ ĐIỆN TỬ (FLIPBOOK) -->
-    <div id="tabFlipbook" class="tab-content">
-      <div class="header-box">
-        <h2 style="color: #7b1fa2; margin: 0;">📖 SỔ CA ĐIỆN TỬ (FLIPBOOK)</h2>
-      </div>
-      <p style="color: #555; font-size: 14px; margin-bottom: 15px;">Lật giở xem lại các biên bản bàn giao ca trực trực quan.</p>
-      
-      <button type="button" class="btn-action" style="background: linear-gradient(135deg, #7b1fa2, #4a148c);" onclick="loadFlipbookData()">🔄 Tải & Làm Mới Sổ Tay</button>
-      
-      <div id="flipbook-wrapper">
-        <div id="book">
-          <div class="page page-cover">
-            <div style="margin: auto; display: flex; flex-direction: column; justify-content: space-between; height: 100%; padding: 20px 10px; text-align: center;">
-              <div>
-                <div style="font-size: 13px; font-weight: bold; text-transform: uppercase; margin-bottom: 4px; letter-spacing: 0.5px;">TRUNG TÂM HẠ TẦNG MIỀN TRUNG</div>
-                <div style="font-size: 12px; font-weight: bold; text-transform: uppercase; opacity: 0.9;">TRẠM VIỄN THÔNG HUẾ</div>
-              </div>
-              <div>
-                <h2 style="font-size: 28px; margin: 0; text-shadow: 2px 2px 4px rgba(0,0,0,0.4); letter-spacing: 1px;">SỔ TRỰC CA</h2>
-              </div>
-              <div>
-                <p style="font-size: 12px; margin: 0; opacity: 0.8;">(Tổng số trang: 1)</p>
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        <div class="flip-controls">
-          <button type="button" class="btn-action" style="padding: 8px 16px; font-size: 14px;" onclick="prevPage()">◀ Trang trước</button>
-          <span id="page-info" style="font-weight: bold; color: #7b1fa2;">Trang: 1 / 1</span>
-          <button type="button" class="btn-action" style="padding: 8px 16px; font-size: 14px;" onclick="nextPage()">Trang sau ▶</button>
-        </div>
-      </div>
-    </div>
+  <!-- Nút điều hướng -->
+  <div class="controls">
+    <button class="ctrl-btn" id="prevBtn" onclick="changeQuestion(-1)">Câu Trước</button>
+    <button class="ctrl-btn" id="nextBtn" onclick="changeQuestion(1)">Câu Tiếp</button>
   </div>
 
   <script>
-    var globalVatTuData = [];
-    var mapInstanceSuCo = null;
-    var markersLayerSuCo = null;
-    var mapInstanceSoHoa = null;
-    var markersLayerSoHoa = null;
-    var pageFlipInstance = null;
+    // Khai báo dữ liệu bài thi
+    const examData = [
+      {
+        id: 1,
+        image: "images/img_1.png",
+        audio: "audios/audio_1.mp3",
+        options: [
+          "(A) Items are being placed on shelves.",
+          "(B) Boxes are stacked in the warehouse.",
+          "(C) The floor is being swept.",
+          "(D) Trucks are loading goods."
+        ],
+        correct: 1 // Đáp án B (chỉ số 1: 0=A, 1=B, 2=C, 3=D)
+      },
+      {
+        id: 2,
+        image: "images/img_2.png",
+        audio: "audios/audio_2.mp3",
+        options: [
+          "(A) She is working on a computer.",
+          "(B) She is talking on the phone.",
+          "(C) She is writing in a notebook.",
+          "(D) She is holding a cup."
+        ],
+        correct: 0 // Đáp án A
+      }
+    ];
 
-    const defaultPositionNotes = {
-      ca1: "BC 10g và 13h30",
-      ca2: "BC 10g và tổng hợp",
-      ca3: "",
-      ttcq1: "Km860-Km894",
-      ttcq2: "Km812-Km860",
-      ttcq3: "A Lưới",
-      congTac: "",
-      nghiBu: ""
-    };
+    let currentIndex = 0;
+    let selectedAnswers = {};
 
-    function openTab(evt, tabName) {
-      var tabcontent = document.getElementsByClassName("tab-content");
-      for (var i = 0; i < tabcontent.length; i++) tabcontent[i].classList.remove("active");
-      var tablinks = document.getElementsByClassName("tab-btn");
-      for (var i = 0; i < tablinks.length; i++) tablinks[i].classList.remove("active");
-      
-      document.getElementById(tabName).classList.add("active");
-      if (evt && evt.currentTarget) {
-        evt.currentTarget.classList.add("active");
-      }
-      
-      if (mapInstanceSuCo && tabName === 'tabSuCo') {
-        setTimeout(function() { mapInstanceSuCo.invalidateSize(); }, 200);
-      }
-      if (mapInstanceSoHoa && tabName === 'tabSoHoa') {
-        setTimeout(function() { mapInstanceSoHoa.invalidateSize(); }, 200);
-      }
-      if (tabName === 'tabFlipbook' && !pageFlipInstance) {
-        loadFlipbookData();
-      }
+    function renderNav() {
+      const navBar = document.getElementById('navBar');
+      navBar.innerHTML = '';
+      examData.forEach((q, idx) => {
+        const btn = document.createElement('button');
+        btn.className = `nav-btn ${idx === currentIndex ? 'active' : ''}`;
+        btn.innerText = q.id;
+        btn.onclick = () => loadQuestion(idx);
+        navBar.appendChild(btn);
+      });
     }
 
-    function populateSelect(selectId, list, defaultText) {
-      var select = document.getElementById(selectId);
-      if (!select) return;
-      select.innerHTML = '<option value="">' + defaultText + '</option>';
-      if (list && Array.isArray(list)) {
-        list.forEach(function(item) {
-          var opt = document.createElement('option');
-          opt.value = item;
-          opt.textContent = item;
-          select.appendChild(opt);
-        });
-      }
-    }
+    function loadQuestion(index) {
+      currentIndex = index;
+      renderNav();
 
-    function formatToaDoCell(toaDoStr) {
-      if (!toaDoStr || !toaDoStr.toString().trim()) return '';
-      var cleanStr = toaDoStr.toString().trim();
-      if (cleanStr.includes(',')) {
-        var parts = cleanStr.split(',');
-        if (parts.length >= 2) {
-          var lat = parts[0].trim();
-          var lng = parts[1].trim();
-          if (!isNaN(lat) && !isNaN(lng)) {
-            var mapUrl = 'https://www.google.com/maps?q=' + lat + ',' + lng;
-            return '<a href="' + mapUrl + '" target="_blank" class="map-link" title="Xem trên Google Maps">' + cleanStr + ' 🗺️</a>';
-          }
+      const q = examData[currentIndex];
+      document.getElementById('qTitle').innerText = `Câu ${q.id}`;
+      document.getElementById('qImage').src = q.image;
+      
+      const audioPlayer = document.getElementById('qAudio');
+      audioPlayer.src = q.audio;
+      audioPlayer.load();
+
+      const optionsBox = document.getElementById('optionsBox');
+      optionsBox.innerHTML = '';
+
+      q.options.forEach((optText, optIdx) => {
+        const btn = document.createElement('button');
+        btn.className = 'option-btn';
+        btn.innerText = optText;
+
+        // Nếu câu hỏi này đã được chọn đáp án trước đó
+        if (selectedAnswers[currentIndex] !== undefined) {
+          if (optIdx === q.correct) btn.classList.add('correct');
+          if (optIdx === selectedAnswers[currentIndex] && optIdx !== q.correct) btn.classList.add('wrong');
         }
-      }
-      return cleanStr;
-    }
 
-    // Hàm lấy ngày Thứ Hai của tuần hiện tại định dạng YYYY-MM-DD
-    function getMonday(d) {
-      d = new Date(d);
-      var day = d.getDay();
-      var diff = d.getDate() - day + (day === 0 ? -6 : 1);
-      var monday = new Date(d.setDate(diff));
-      var year = monday.getFullYear();
-      var month = String(monday.getMonth() + 1).padStart(2, '0');
-      var dayStr = String(monday.getDate()).padStart(2, '0');
-      return year + '-' + month + '-' + dayStr;
-    }
+        btn.onclick = () => {
+          selectedAnswers[currentIndex] = optIdx;
+          loadQuestion(currentIndex); // Render lại để hiện màu đúng/sai
+        };
 
-    window.onload = function() {
-      var today = new Date().toISOString().split('T')[0];
-      var dateInput = document.getElementById('gcNgayGiao');
-      if (dateInput) dateInput.value = today;
-      
-      // Luôn gán mặc định là ngày Thứ Hai đầu tuần hiện tại
-      var pcInput = document.getElementById('pcTuanBatDau');
-      if (pcInput) pcInput.value = getMonday(new Date());
-
-      var dateObj = new Date();
-      var firstDayOfMonth = new Date(dateObj.getFullYear(), dateObj.getMonth(), 1).toISOString().split('T')[0];
-      if (document.getElementById('tcTuNgay')) document.getElementById('tcTuNgay').value = firstDayOfMonth;
-      if (document.getElementById('tcDenNgay')) document.getElementById('tcDenNgay').value = today;
-
-      google.script.run
-        .withSuccessHandler(function(res) {
-          if (res && res.success) {
-            if (res.staffList) {
-              populateSelect('gcNguoiGiao', res.staffList, '-- Chọn người giao --');
-              populateSelect('gcNguoiNhan', res.staffList, '-- Chọn người nhận --');
-            }
-            if (res.linkList) {
-              populateSelect('scLink', res.linkList, '-- Tất cả Link --');
-              populateSelect('shLink', res.linkList, '-- Tất cả Link --');
-            }
-            if (res.tuyenCapList) {
-              populateSelect('scTuyenCap', res.tuyenCapList, '-- Tất cả Tuyến cáp --');
-              populateSelect('shTuyenCap', res.tuyenCapList, '-- Tất cả Tuyến cáp --');
-            }
-            if (res.linhVucList) {
-              populateSelect('vtLinhVuc', res.linhVucList, '-- Tất cả Lĩnh vực --');
-            }
-            if (res.allVatTuData) {
-              globalVatTuData = res.allVatTuData;
-              renderVatTuTable(globalVatTuData);
-            }
-            if (res.lastHandover) {
-              document.getElementById('gcCongViecTX').value = res.lastHandover.congViecThuongXuyen || '';
-              document.getElementById('gcNoiDungCV').value = res.lastHandover.noiDungCongViec || '';
-              document.getElementById('gcTonTai').value = res.lastHandover.noiDungTonTai || '';
-              if (res.lastHandover.nguoiGiao) document.getElementById('gcNguoiGiao').value = res.lastHandover.nguoiGiao;
-              if (res.lastHandover.nguoiNhan) document.getElementById('gcNguoiNhan').value = res.lastHandover.nguoiNhan;
-            }
-            // Tự động tải bảng phân ca của tuần hiện tại khi khởi chạy
-            loadPhanCaTable();
-            loadBangTinhCong();
-          } else {
-            alert("Lỗi khởi tạo dữ liệu: " + (res ? res.error : "Không phản hồi từ Server"));
-          }
-        })
-        .withFailureHandler(function(err) {
-          alert("Lỗi kết nối Server: " + err.message);
-        })
-        .getInitialData();
-    };
-
-    function loadPhanCaTable() {
-      var tuanBatDau = document.getElementById('pcTuanBatDau').value;
-      if (!tuanBatDau) {
-        alert("Vui lòng chọn tuần bắt đầu!");
-        return;
-      }
-      var resDiv = document.getElementById('phanCaResult');
-      resDiv.innerHTML = '<p class="loading">⏳ Đang tải lịch phân ca...</p>';
-
-      google.script.run
-        .withSuccessHandler(function(res) {
-          if (res.success) {
-            var data = res.data || [];
-            var positionNotes = (res.positionNotes && Object.keys(res.positionNotes).length > 0) ? res.positionNotes : defaultPositionNotes;
-            var daysName = ["Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "Chủ Nhật"];
-            
-            var html = '<div class="table-responsive"><table class="phan-ca-table"><thead><tr>' +
-              '<th>Ca / Vị trí</th>';
-            
-            for (var i = 0; i < 7; i++) {
-              var dText = daysName[i];
-              if (data[i] && data[i].ngay) dText += '<br><small>' + data[i].ngay + '</small>';
-              html += '<th>' + dText + '</th>';
-            }
-            html += '<th class="red-frame-cell" style="width: 220px;">Ghi chú</th></tr></thead><tbody>';
-
-            var rowsDef = [
-              { label: 'CA 1', key: 'ca1', noteKey: 'ca1' },
-              { label: 'CA 2', key: 'ca2', noteKey: 'ca2' },
-              { label: 'CA 3', key: 'ca3', noteKey: 'ca3' },
-              { label: 'TTCQ 1', key: 'ttcq1', noteKey: 'ttcq1' },
-              { label: 'TTCQ 2', key: 'ttcq2', noteKey: 'ttcq2' },
-              { label: 'TTCQ 3', key: 'ttcq3', noteKey: 'ttcq3' },
-              { label: 'Công tác', key: 'congTac', noteKey: 'congTac' },
-              { label: 'Nghỉ bù', key: 'nghiBu', noteKey: 'nghiBu' }
-            ];
-
-            rowsDef.forEach(function(r) {
-              html += '<tr><td><b>' + r.label + '</b></td>';
-              for (var i = 0; i < 7; i++) {
-                var cellVal = (data[i] && data[i][r.key]) ? data[i][r.key] : '';
-                html += '<td>' + cellVal + '</td>';
-              }
-              var noteVal = (positionNotes && positionNotes[r.noteKey] !== undefined && positionNotes[r.noteKey] !== '') ? positionNotes[r.noteKey] : (defaultPositionNotes[r.noteKey] || '');
-              html += '<td class="red-frame-cell">' + noteVal + '</td>';
-              html += '</tr>';
-            });
-
-            html += '</tbody></table></div>';
-            resDiv.innerHTML = html;
-          } else {
-            resDiv.innerHTML = '<p style="color: red;">❌ Lỗi: ' + res.error + '</p>';
-          }
-        })
-        .withFailureHandler(function(err) {
-          resDiv.innerHTML = '<p style="color: red;">❌ Lỗi kết nối: ' + err.message + '</p>';
-        })
-        .getPhanCaByWeek(tuanBatDau);
-    }
-
-    function loadBangTinhCong() {
-      var tuNgay = document.getElementById('tcTuNgay').value;
-      var denNgay = document.getElementById('tcDenNgay').value;
-      var resDiv = document.getElementById('tinhCongResult');
-      resDiv.innerHTML = '<p class="loading">⏳ Đang tổng hợp công nhân viên...</p>';
-
-      google.script.run
-        .withSuccessHandler(function(res) {
-          if (res.success) {
-            var data = res.data || [];
-            if (data.length === 0) {
-              resDiv.innerHTML = '<p style="color: orange; font-weight: bold;">⚠️ Không có dữ liệu ca trực trong khoảng thời gian này.</p>';
-              return;
-            }
-
-            var html = '<div class="table-responsive"><table><thead><tr>' +
-              '<th>STT</th>' +
-              '<th>Họ và Tên Nhân Viên</th>' +
-              '<th style="text-align: center;">Ca 1</th>' +
-              '<th style="text-align: center;">Ca 2</th>' +
-              '<th style="text-align: center;">Ca 3</th>' +
-              '<th style="text-align: center;">TTCQ</th>' +
-              '<th style="text-align: center;">Công Tác</th>' +
-              '<th style="text-align: center;">Nghỉ Bù</th>' +
-              '<th style="text-align: center; background-color: #e8f5e9; color: #2e7d32;">Tổng Tổng</th>' +
-              '</tr></thead><tbody>';
-
-            data.forEach(function(row, idx) {
-              html += '<tr>' +
-                '<td style="text-align: center;">' + (idx + 1) + '</td>' +
-                '<td><b>' + row.nhanVien + '</b></td>' +
-                '<td style="text-align: center;">' + (row.ca1 || 0) + '</td>' +
-                '<td style="text-align: center;">' + (row.ca2 || 0) + '</td>' +
-                '<td style="text-align: center;">' + (row.ca3 || 0) + '</td>' +
-                '<td style="text-align: center;">' + (row.ttcq || 0) + '</td>' +
-                '<td style="text-align: center;">' + (row.congTac || 0) + '</td>' +
-                '<td style="text-align: center;">' + (row.nghiBu || 0) + '</td>' +
-                '<td style="text-align: center; font-weight: bold; background-color: #f1f8e9; color: #2e7d32;">' + row.tongCa + '</td>' +
-                '</tr>';
-            });
-
-            html += '</tbody></table></div>';
-            resDiv.innerHTML = html;
-          } else {
-            resDiv.innerHTML = '<p style="color: red;">❌ Lỗi: ' + res.error + '</p>';
-          }
-        })
-        .withFailureHandler(function(err) {
-          resDiv.innerHTML = '<p style="color: red;">❌ Lỗi kết nối: ' + err.message + '</p>';
-        })
-        .tinhCongNhanVien(tuNgay, denNgay);
-    }
-
-    function createDropdownOptions(list, selectedValue) {
-      var optHtml = '<option value="">-- Chọn --</option>';
-      if (list && Array.isArray(list)) {
-        list.forEach(function(item) {
-          var sel = (item === selectedValue) ? 'selected' : '';
-          optHtml += '<option value="' + item + '" ' + sel + '>' + item + '</option>';
-        });
-      }
-      return optHtml;
-    }
-
-    function createMultiDropdownOptions(list, selectedValuesStr) {
-      var selectedArr = (selectedValuesStr || '').split(',').map(function(s) { return s.trim(); });
-      var optHtml = '';
-      if (list && Array.isArray(list)) {
-        list.forEach(function(item) {
-          var sel = selectedArr.includes(item) ? 'selected' : '';
-          optHtml += '<option value="' + item + '" ' + sel + '>' + item + '</option>';
-        });
-      }
-      return optHtml;
-    }
-
-    function switchToEditPhanCa() {
-      var tuanBatDau = document.getElementById('pcTuanBatDau').value;
-      if (!tuanBatDau) {
-        alert("Vui lòng chọn tuần bắt đầu!");
-        return;
-      }
-      var resDiv = document.getElementById('phanCaResult');
-      resDiv.innerHTML = '<p class="loading">⏳ Đang tải dữ liệu để chỉnh sửa...</p>';
-
-      google.script.run
-        .withSuccessHandler(function(res) {
-          if (res.success) {
-            var existingData = res.data || [];
-            var trucCaList = res.trucCaList || [];
-            var tuanTraList = res.tuanTraList || [];
-            var pNotes = (res.positionNotes && Object.keys(res.positionNotes).length > 0) ? res.positionNotes : defaultPositionNotes;
-            var daysName = ["Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "Chủ Nhật"];
-            var baseDate = new Date(tuanBatDau);
-            
-            var html = '<form id="formEditPhanCa" onsubmit="savePhanCaForm(event)">' +
-              '<p style="color: #1976d2; font-weight: bold;">Nhập liệu phân ca cho tuần bắt đầu từ: ' + tuanBatDau + '</p>' +
-              '<div class="table-responsive"><table class="phan-ca-table"><thead><tr>' +
-              '<th>Thứ / Ngày</th><th>Ca 1</th><th>Ca 2</th><th>Ca 3</th><th>TTCQ 1</th><th>TTCQ 2</th><th>TTCQ 3</th><th>Công tác</th><th>Nghỉ bù</th>' +
-              '</tr></thead><tbody>';
-
-            for (var i = 0; i < 7; i++) {
-              var currDate = new Date(baseDate);
-              currDate.setDate(baseDate.getDate() + i);
-              var dateStr = currDate.toISOString().split('T')[0];
-              
-              var matched = existingData.find(function(item) { return item.thu === daysName[i]; }) || {};
-
-              html += '<tr>' +
-                '<td><b>' + daysName[i] + '</b><br><input type="date" name="ngay_' + i + '" value="' + (matched.ngay || dateStr) + '" style="font-size:11px; padding:4px;"></td>' +
-                '<td><select name="ca1_' + i + '">' + createDropdownOptions(trucCaList, matched.ca1) + '</select></td>' +
-                '<td><select name="ca2_' + i + '">' + createDropdownOptions(trucCaList, matched.ca2) + '</select></td>' +
-                '<td><select name="ca3_' + i + '">' + createDropdownOptions(trucCaList, matched.ca3) + '</select></td>' +
-                '<td><select name="ttcq1_' + i + '" class="select-multi" multiple="multiple">' + createMultiDropdownOptions(tuanTraList, matched.ttcq1) + '</select></td>' +
-                '<td><select name="ttcq2_' + i + '" class="select-multi" multiple="multiple">' + createMultiDropdownOptions(tuanTraList, matched.ttcq2) + '</select></td>' +
-                '<td><select name="ttcq3_' + i + '" class="select-multi" multiple="multiple">' + createMultiDropdownOptions(tuanTraList, matched.ttcq3) + '</select></td>' +
-                '<td><select name="congTac_' + i + '" class="select-multi" multiple="multiple">' + createMultiDropdownOptions(trucCaList, matched.congTac) + '</select></td>' +
-                '<td><select name="nghiBu_' + i + '" class="select-multi" multiple="multiple">' + createMultiDropdownOptions(trucCaList, matched.nghiBu) + '</select></td>' +
-                '</tr>';
-            }
-
-            var valCa1 = (pNotes.ca1 !== undefined && pNotes.ca1 !== '') ? pNotes.ca1 : defaultPositionNotes.ca1;
-            var valCa2 = (pNotes.ca2 !== undefined && pNotes.ca2 !== '') ? pNotes.ca2 : defaultPositionNotes.ca2;
-            var valCa3 = (pNotes.ca3 !== undefined && pNotes.ca3 !== '') ? pNotes.ca3 : defaultPositionNotes.ca3;
-            var valTtcq1 = (pNotes.ttcq1 !== undefined && pNotes.ttcq1 !== '') ? pNotes.ttcq1 : defaultPositionNotes.ttcq1;
-            var valTtcq2 = (pNotes.ttcq2 !== undefined && pNotes.ttcq2 !== '') ? pNotes.ttcq2 : defaultPositionNotes.ttcq2;
-            var valTtcq3 = (pNotes.ttcq3 !== undefined && pNotes.ttcq3 !== '') ? pNotes.ttcq3 : defaultPositionNotes.ttcq3;
-            var valCongTac = (pNotes.congTac !== undefined && pNotes.congTac !== '') ? pNotes.congTac : defaultPositionNotes.congTac;
-            var valNghiBu = (pNotes.nghiBu !== undefined && pNotes.nghiBu !== '') ? pNotes.nghiBu : defaultPositionNotes.nghiBu;
-
-            html += '</tbody></table></div>' +
-              '<div class="notes-edit-box">' +
-              '<h3 style="color: #5d4037; margin-top: 0; margin-bottom: 12px; font-size: 15px; border-bottom: 1px solid #ffe0b2; padding-bottom: 8px;">Ghi chú theo vị trí trực / tuần tra</h3>' +
-              '<div class="form-row">' +
-                '<div class="form-group"><label>Ghi chú CA 1:</label><input type="text" id="pNote_ca1" value="' + valCa1 + '"></div>' +
-                '<div class="form-group"><label>Ghi chú CA 2:</label><input type="text" id="pNote_ca2" value="' + valCa2 + '"></div>' +
-                '<div class="form-group"><label>Ghi chú CA 3:</label><input type="text" id="pNote_ca3" value="' + valCa3 + '"></div>' +
-              '</div>' +
-              '<div class="form-row">' +
-                '<div class="form-group"><label>Ghi chú TTCQ 1:</label><input type="text" id="pNote_ttcq1" value="' + valTtcq1 + '"></div>' +
-                '<div class="form-group"><label>Ghi chú TTCQ 2:</label><input type="text" id="pNote_ttcq2" value="' + valTtcq2 + '"></div>' +
-                '<div class="form-group"><label>Ghi chú TTCQ 3:</label><input type="text" id="pNote_ttcq3" value="' + valTtcq3 + '"></div>' +
-              '</div>' +
-              '<div class="form-row">' +
-                '<div class="form-group"><label>Ghi chú Công tác:</label><input type="text" id="pNote_congTac" value="' + valCongTac + '"></div>' +
-                '<div class="form-group"><label>Ghi chú Nghỉ bù:</label><input type="text" id="pNote_nghiBu" value="' + valNghiBu + '"></div>' +
-              '</div>' +
-              '</div>' +
-              '<button type="submit" class="btn-action btn-success-action" style="margin-top: 15px;">💾 Lưu Phân Ca Tuần</button>' +
-              ' <button type="button" class="btn-action" style="background:#757575; margin-top: 15px;" onclick="loadPhanCaTable()">❌ Hủy</button>' +
-              '</form>';
-
-            resDiv.innerHTML = html;
-            
-            $(document).ready(function() {
-                $('.select-multi').select2({
-                    placeholder: "-- Chọn nhân sự --",
-                    allowClear: true,
-                    width: '100%'
-                });
-            });
-
-          } else {
-            resDiv.innerHTML = '<p style="color: red;">Lỗi tải dữ liệu: ' + res.error + '</p>';
-          }
-        })
-        .withFailureHandler(function(err) {
-          resDiv.innerHTML = '<p style="color: red;">Lỗi kết nối: ' + err.message + '</p>';
-        })
-        .getPhanCaByWeek(tuanBatDau);
-    }
-
-    function getMultiSelectVal(inputName) {
-        var val = $('[name="' + inputName + '"]').val();
-        return (val && Array.isArray(val)) ? val.join(', ') : (val || '');
-    }
-
-    function savePhanCaForm(e) {
-      e.preventDefault();
-      var tuanBatDau = document.getElementById('pcTuanBatDau').value;
-      var daysName = ["Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "Chủ Nhật"];
-      var daysData = [];
-
-      for (var i = 0; i < 7; i++) {
-        daysData.push({
-          ngay: document.querySelector('[name="ngay_' + i + '"]').value,
-          thu: daysName[i],
-          ca1: document.querySelector('[name="ca1_' + i + '"]').value,
-          ca2: document.querySelector('[name="ca2_' + i + '"]').value,
-          ca3: document.querySelector('[name="ca3_' + i + '"]').value,
-          ttcq1: getMultiSelectVal('ttcq1_' + i),
-          ttcq2: getMultiSelectVal('ttcq2_' + i),
-          ttcq3: getMultiSelectVal('ttcq3_' + i),
-          congTac: getMultiSelectVal('congTac_' + i),
-          nghiBu: getMultiSelectVal('nghiBu_' + i),
-          ghiChu: ''
-        });
-      }
-
-      var positionNotes = {
-        ca1: document.getElementById('pNote_ca1').value,
-        ca2: document.getElementById('pNote_ca2').value,
-        ca3: document.getElementById('pNote_ca3').value,
-        ttcq1: document.getElementById('pNote_ttcq1').value,
-        ttcq2: document.getElementById('pNote_ttcq2').value,
-        ttcq3: document.getElementById('pNote_ttcq3').value,
-        congTac: document.getElementById('pNote_congTac').value,
-        nghiBu: document.getElementById('pNote_nghiBu').value
-      };
-
-      document.getElementById('phanCaResult').innerHTML = '<p class="loading">⏳ Đang lưu phân ca...</p>';
-
-      google.script.run
-        .withSuccessHandler(function(res) {
-          if (res.success) {
-            alert("✅ Lưu phân ca thành công!");
-            loadPhanCaTable();
-          } else {
-            alert("❌ Lỗi: " + res.error);
-            loadPhanCaTable();
-          }
-        })
-        .withFailureHandler(function(err) {
-          alert("❌ Lỗi kết nối: " + err.message);
-          loadPhanCaTable();
-        })
-        .savePhanCaWeek({ tuanBatDau: tuanBatDau, daysData: daysData, positionNotes: positionNotes });
-    }
-
-    function loadShiftData() {
-      var ngayGiao = document.getElementById('gcNgayGiao').value;
-      var caTruc = document.getElementById('gcCaTruc').value;
-      if (!ngayGiao) {
-        alert("Vui lòng chọn ngày giao ca!");
-        return;
-      }
-      google.script.run
-        .withSuccessHandler(function(res) {
-          if (res.success) {
-            if (res.found && res.data) {
-              document.getElementById('gcNguoiGiao').value = res.data.nguoiGiao || '';
-              document.getElementById('gcNguoiNhan').value = res.data.nguoiNhan || '';
-              document.getElementById('gcCongViecTX').value = res.data.congViecThuongXuyen || '';
-              document.getElementById('gcNoiDungCV').value = res.data.noiDungCongViec || '';
-              document.getElementById('gcTonTai').value = res.data.noiDungTonTai || '';
-              document.getElementById('handoverResult').innerHTML = '<p style="color: green; font-weight: bold;">✅ Đã tải thành công dữ liệu ca trực cũ.</p>';
-            } else {
-              document.getElementById('handoverResult').innerHTML = '<p style="color: orange; font-weight: bold;">⚠️ ' + res.message + '</p>';
-            }
-          } else {
-            alert("Lỗi: " + res.error);
-          }
-        })
-        .withFailureHandler(function(err) {
-          alert("Lỗi kết nối: " + err.message);
-        })
-        .getShiftData(ngayGiao, caTruc);
-    }
-
-    function submitHandover(e) {
-      e.preventDefault();
-      var formData = {
-        ngayGiao: document.getElementById('gcNgayGiao').value,
-        caTruc: document.getElementById('gcCaTruc').value,
-        nguoiGiao: document.getElementById('gcNguoiGiao').value,
-        nguoiNhan: document.getElementById('gcNguoiNhan').value,
-        congViecThuongXuyen: document.getElementById('gcCongViecTX').value,
-        noiDungCongViec: document.getElementById('gcNoiDungCV').value,
-        noiDungTonTai: document.getElementById('gcTonTai').value
-      };
-      
-      document.getElementById('handoverResult').innerHTML = '<p class="loading">⏳ Đang tạo biên bản bàn giao ca trực...</p>';
-
-      google.script.run
-        .withSuccessHandler(function(res) {
-          if (res.success) {
-            var html = '<p style="color: green; font-weight: bold;">🎉 Tạo biên bản bàn giao thành công!</p>';
-            html += '<p><a href="' + res.url + '" target="_blank" class="map-link">📄 Xem Google Doc Biên Bản</a> | ';
-            if (res.pdfUrl) {
-              html += '<a href="' + res.pdfUrl + '" target="_blank" class="map-link">📥 Tải File PDF</a></p>';
-            }
-            document.getElementById('handoverResult').innerHTML = html;
-          } else {
-            document.getElementById('handoverResult').innerHTML = '<p style="color: red; font-weight: bold;">❌ Lỗi: ' + res.error + '</p>';
-          }
-        })
-        .withFailureHandler(function(err) {
-          document.getElementById('handoverResult').innerHTML = '<p style="color: red; font-weight: bold;">❌ Lỗi kết nối: ' + err.message + '</p>';
-        })
-        .processHandover(formData);
-    }
-
-    function doSearchSuCo() {
-      var link = document.getElementById('scLink').value;
-      var tuyenCap = document.getElementById('scTuyenCap').value;
-      var otdr = document.getElementById('scOtdr').value;
-      var onlyNearest = document.getElementById('scOnlyNearest').checked;
-      var resultDiv = document.getElementById('suCoResult');
-      var mapContainer = document.getElementById('mapSuCoContainer');
-
-      resultDiv.innerHTML = '<p class="loading">⏳ Đang tra cứu sự cố...</p>';
-      mapContainer.style.display = 'none';
-
-      google.script.run
-        .withSuccessHandler(function(res) {
-          if (res.success) {
-            if (!res.data || res.data.length === 0) {
-              resultDiv.innerHTML = '<p style="color: red; font-weight: bold;">⚠️ Không tìm thấy điểm sự cố phù hợp.</p>';
-              return;
-            }
-
-            var html = '<div class="table-responsive"><table><thead><tr>' +
-              '<th>ID</th><th>Trạm QL</th><th>Tuyến Cáp</th><th>Link</th><th>Đối Tượng</th><th>OTDR</th>' +
-              '<th>Tại Km</th><th>Tọa Độ</th><th>Thời Gian</th><th>Mức Phụ Sóng (MX)</th><th>Mức Phụ Cáp</th>' +
-              '</tr></thead><tbody>';
-
-            var validCoords = [];
-            res.data.forEach(function(row) {
-              html += '<tr>' +
-                '<td>' + (row.id || '') + '</td><td>' + (row.tramQL || '') + '</td><td>' + (row.tuyenCap || '') + '</td>' +
-                '<td>' + (row.link || '') + '</td><td>' + (row.doiTuong || '') + '</td><td>' + (row.otdr || '') + '</td>' +
-                '<td>' + (row.taiKm || '') + '</td><td>' + formatToaDoCell(row.toaDo) + '</td><td>' + (row.thoiGian || '') + '</td>' +
-                '<td>' + (row.mxPs || '') + '</td><td>' + (row.mCapPs || '') + '</td>' +
-                '</tr>';
-
-              if (row.toaDo && row.toaDo.toString().trim() !== '') {
-                var cleanToaDo = row.toaDo.toString().trim();
-                if (cleanToaDo.includes(',')) {
-                  var parts = cleanToaDo.split(',');
-                  if (parts.length >= 2) {
-                    var lat = parseFloat(parts[0].trim());
-                    var lng = parseFloat(parts[1].trim());
-                    if (!isNaN(lat) && !isNaN(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180 && !(lat === 0 && lng === 0)) {
-                      validCoords.push({ lat: lat, lng: lng, info: row });
-                    }
-                  }
-                }
-              }
-            });
-
-            html += '</tbody></table></div>';
-            resultDiv.innerHTML = html;
-
-            if (validCoords.length > 0) {
-              mapContainer.style.display = 'block';
-              document.getElementById('mapSuCoTitle').textContent = '⚡ BẢN ĐỒ SỰ CỐ CÁP QUANG (' + validCoords.length + ' điểm có tọa độ)';
-
-              setTimeout(function() {
-                if (!mapInstanceSuCo) {
-                  mapInstanceSuCo = L.map('mapSuCo').setView([validCoords[0].lat, validCoords[0].lng], 12);
-                  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap contributors' }).addTo(mapInstanceSuCo);
-                } else {
-                  mapInstanceSuCo.invalidateSize();
-                }
-
-                if (markersLayerSuCo) mapInstanceSuCo.removeLayer(markersLayerSuCo);
-                markersLayerSuCo = L.layerGroup().addTo(mapInstanceSuCo);
-
-                var bounds = [];
-                validCoords.forEach(function(item) {
-                  var marker = L.marker([item.lat, item.lng]).addTo(markersLayerSuCo);
-                  var labelText = (item.info.doiTuong || 'SC') + '/' + (item.info.taiKm || '');
-                  marker.bindTooltip(labelText, { permanent: true, direction: 'right', className: 'map-label-tag' });
-                  marker.bindPopup('<b>Tuyến:</b> ' + item.info.tuyenCap + '<br><b>Tọa độ:</b> ' + item.info.toaDo);
-                  bounds.push([item.lat, item.lng]);
-                });
-
-                if (bounds.length > 0) {
-                  mapInstanceSuCo.invalidateSize();
-                  mapInstanceSuCo.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 });
-                }
-              }, 300);
-            }
-          } else {
-            resultDiv.innerHTML = '<p style="color: red;">❌ Lỗi: ' + res.error + '</p>';
-          }
-        })
-        .withFailureHandler(function(err) {
-          resultDiv.innerHTML = '<p style="color: red;">❌ Lỗi kết nối: ' + err.message + '</p>';
-        })
-        .searchSuCo(link, tuyenCap, otdr, onlyNearest);
-    }
-
-    function doSearchSoHoa() {
-      var link = document.getElementById('shLink').value;
-      var tuyenCap = document.getElementById('shTuyenCap').value;
-      var keyword = document.getElementById('shKeyword').value;
-      var resultDiv = document.getElementById('soHoaResult');
-      var mapContainer = document.getElementById('mapSoHoaContainer');
-
-      resultDiv.innerHTML = '<p class="loading">⏳ Đang tra cứu dữ liệu số hóa...</p>';
-      mapContainer.style.display = 'none';
-
-      google.script.run
-        .withSuccessHandler(function(res) {
-          if (res.success) {
-            if (!res.data || res.data.length === 0) {
-              resultDiv.innerHTML = '<p style="color: red; font-weight: bold;">⚠️ Không tìm thấy dữ liệu số hóa phù hợp.</p>';
-              return;
-            }
-
-            var html = '<div class="table-responsive"><table><thead><tr>' +
-              '<th>ID</th><th>Trạm QL</th><th>Tuyến Cáp</th><th>Link</th><th>Đối Tượng</th><th>OTDR</th>' +
-              '<th>Độ Sâu</th><th>Tại Km</th><th>Tọa Độ</th><th>Thời Gian</th><th>Diễn Giải</th>' +
-              '</tr></thead><tbody>';
-
-            var validCoords = [];
-            res.data.forEach(function(row) {
-              html += '<tr>' +
-                '<td>' + (row.id || '') + '</td><td>' + (row.tramQL || '') + '</td><td>' + (row.tuyenCap || '') + '</td>' +
-                '<td>' + (row.link || '') + '</td><td>' + (row.doiTuong || '') + '</td><td>' + (row.otdr || '') + '</td>' +
-                '<td>' + (row.doSau || '') + '</td><td>' + (row.taiKm || '') + '</td><td>' + formatToaDoCell(row.toaDo) + '</td>' +
-                '<td>' + (row.thoiGian || '') + '</td><td>' + (row.dienGiai || '') + '</td>' +
-                '</tr>';
-
-              if (row.toaDo && row.toaDo.toString().trim() !== '') {
-                var cleanToaDo = row.toaDo.toString().trim();
-                if (cleanToaDo.includes(',')) {
-                  var parts = cleanToaDo.split(',');
-                  if (parts.length >= 2) {
-                    var lat = parseFloat(parts[0].trim());
-                    var lng = parseFloat(parts[1].trim());
-                    if (!isNaN(lat) && !isNaN(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180 && !(lat === 0 && lng === 0)) {
-                      validCoords.push({ lat: lat, lng: lng, info: row });
-                    }
-                  }
-                }
-              }
-            });
-
-            html += '</tbody></table></div>';
-            resultDiv.innerHTML = html;
-
-            if (validCoords.length > 0) {
-              mapContainer.style.display = 'block';
-              document.getElementById('mapSoHoaTitle').textContent = '📖 BẢN ĐỒ SỔ HÓA CÁP QUANG (' + validCoords.length + ' điểm có tọa độ)';
-
-              setTimeout(function() {
-                if (!mapInstanceSoHoa) {
-                  mapInstanceSoHoa = L.map('mapSoHoa').setView([validCoords[0].lat, validCoords[0].lng], 12);
-                  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap contributors' }).addTo(mapInstanceSoHoa);
-                } else {
-                  mapInstanceSoHoa.invalidateSize();
-                }
-
-                if (markersLayerSoHoa) mapInstanceSoHoa.removeLayer(markersLayerSoHoa);
-                markersLayerSoHoa = L.layerGroup().addTo(mapInstanceSoHoa);
-
-                var bounds = [];
-                validCoords.forEach(function(item) {
-                  var marker = L.marker([item.lat, item.lng]).addTo(markersLayerSoHoa);
-                  var labelText = (item.info.doiTuong || 'MX') + '/' + (item.info.taiKm || '');
-                  marker.bindTooltip(labelText, { permanent: true, direction: 'right', className: 'map-label-tag' });
-                  marker.bindPopup('<b>Tuyến:</b> ' + item.info.tuyenCap + '<br><b>Tọa độ:</b> ' + item.info.toaDo);
-                  bounds.push([item.lat, item.lng]);
-                });
-
-                if (bounds.length > 0) {
-                  mapInstanceSoHoa.invalidateSize();
-                  mapInstanceSoHoa.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 });
-                }
-              }, 300);
-            }
-          } else {
-            resultDiv.innerHTML = '<p style="color: red;">❌ Lỗi: ' + res.error + '</p>';
-          }
-        })
-        .withFailureHandler(function(err) {
-          resultDiv.innerHTML = '<p style="color: red;">❌ Lỗi kết nối: ' + err.message + '</p>';
-        })
-        .searchSoHoa(link, tuyenCap, keyword);
-    }
-
-    function renderVatTuTable(dataList) {
-      var resultDiv = document.getElementById('vatTuResult');
-      if (!dataList || dataList.length === 0) {
-        resultDiv.innerHTML = '<p style="color: red; font-weight: bold;">⚠️ Không tìm thấy vật tư phù hợp.</p>';
-        return;
-      }
-
-      var html = '<div class="table-responsive"><table><thead><tr>' +
-        '<th>Mã Kho</th><th>Tên Kho</th><th>Lô Hàng</th><th>Mã VT</th><th>Tên Vật Tư</th>' +
-        '<th>Tên Tắt</th><th>Part Number</th><th>Serial</th><th>Lĩnh Vực</th>' +
-        '</tr></thead><tbody>';
-
-      dataList.forEach(function(row) {
-        html += '<tr>' +
-          '<td>' + (row.maKho || '') + '</td><td>' + (row.tenKho || '') + '</td><td>' + (row.loHang || '') + '</td>' +
-          '<td>' + (row.maVt || '') + '</td><td>' + (row.tenVt || '') + '</td><td>' + (row.tenTat || '') + '</td>' +
-          '<td>' + (row.partNumber || '') + '</td><td>' + (row.serial || '') + '</td><td>' + (row.linhVuc || '') + '</td>' +
-          '</tr>';
+        optionsBox.appendChild(btn);
       });
 
-      html += '</tbody></table></div>';
-      resultDiv.innerHTML = html;
+      document.getElementById('prevBtn').disabled = currentIndex === 0;
+      document.getElementById('nextBtn').disabled = currentIndex === examData.length - 1;
     }
 
-    function filterVatTuByLinhVuc() { doSearchVatTuLocal(); }
-
-    function doSearchVatTuLocal() {
-      var linhVucVal = document.getElementById('vtLinhVuc').value;
-      var keywordVal = document.getElementById('vtKeyword').value.toLowerCase().trim();
-
-      var filtered = globalVatTuData.filter(function(item) {
-        var matchLv = !linhVucVal || item.linhVuc === linhVucVal;
-        var matchKw = !keywordVal || (item.tenTat && item.tenTat.toLowerCase().includes(keywordVal)) || 
-                                     (item.tenVt && item.tenVt.toLowerCase().includes(keywordVal));
-        return matchLv && matchKw;
-      });
-
-      renderVatTuTable(filtered);
-    }
-
-    function formatHtmlText(str) {
-      if (!str) return 'Không có';
-      var text = str.toString();
-      text = text.replace(/\r\n/g, '<br>').replace(/\n/g, '<br>');
-      return text;
-    }
-
-    function loadFlipbookData() {
-      google.script.run
-        .withSuccessHandler(function(res) {
-          if (res && res.success && res.data) initFlipbook(res.data);
-          else initFlipbook([]);
-        })
-        .withFailureHandler(function(err) { initFlipbook([]); })
-        .getFlipbookRecords();
-    }
-
-    function initFlipbook(records) {
-      var bookElement = document.getElementById('book');
-      bookElement.innerHTML = '';
-      
-      var coverDiv = document.createElement('div');
-      coverDiv.className = 'page page-cover';
-      coverDiv.innerHTML = '<div style="margin: auto; display: flex; flex-direction: column; justify-content: space-between; height: 100%; padding: 20px 10px; text-align: center;">' +
-        '<div><div style="font-size: 13px; font-weight: bold; text-transform: uppercase; margin-bottom: 4px;">TRUNG TÂM HẠ TẦNG MIỀN TRUNG</div>' +
-        '<div style="font-size: 12px; font-weight: bold; text-transform: uppercase;">TRẠM VIỄN THÔNG HUẾ</div></div>' +
-        '<div><h2 style="font-size: 28px; margin: 0; text-shadow: 2px 2px 4px rgba(0,0,0,0.4);">SỔ TRỰC CA</h2></div>' +
-        '<div><p style="font-size: 12px; margin: 0;">(Tổng số trang: ' + (records.length + 1) + ')</p></div></div>';
-      bookElement.appendChild(coverDiv);
-
-      if (records && records.length > 0) {
-        records.forEach(function(rec, index) {
-          var pageDiv = document.createElement('div');
-          pageDiv.className = 'page';
-          var pdfLinkHtml = rec.pdfUrl ? '<p style="margin-top: 10px;"><a href="' + rec.pdfUrl + '" target="_blank" class="map-link">📄 Xem File PDF Biên Bản Chi Tiết</a></p>' : '';
-
-          pageDiv.innerHTML = 
-            '<div><h3>BIÊN BẢN BÀN GIAO CA TRỰC</h3>' +
-              '<div class="page-body">' +
-                '<p style="margin: 4px 0;"><b>Ngày giao:</b> ' + (rec.ngayGiao || '') + ' | <b>Ca:</b> ' + (rec.caTruc || '') + '</p>' +
-                '<p style="margin: 4px 0;"><b>Người giao:</b> ' + (rec.nguoiGiao || '') + '<br><b>Người nhận:</b> ' + (rec.nguoiNhan || '') + '</p>' +
-                '<hr style="border:0; border-top:1px solid #eee; margin: 6px 0;">' +
-                '<p style="margin: 4px 0;"><b>1. Công việc TX / Bảo dưỡng:</b><br><span style="color:#555;">' + formatHtmlText(rec.congViecThuongXuyen) + '</span></p>' +
-                '<p style="margin: 4px 0;"><b>2. Tình hình thông tin & sự cố:</b><br><span style="color:#555;">' + formatHtmlText(rec.noiDungCongViec) + '</span></p>' +
-                '<p style="margin: 4px 0;"><b>3. Tồn tại cần xử lý:</b><br><span style="color:#555;">' + formatHtmlText(rec.noiDungTonTai) + '</span></p>' +
-                pdfLinkHtml +
-              '</div>' +
-            '</div>' +
-            '<div class="page-footer">Trang ' + (index + 2) + '</div>';
-          bookElement.appendChild(pageDiv);
-        });
+    function changeQuestion(step) {
+      const newIndex = currentIndex + step;
+      if (newIndex >= 0 && newIndex < examData.length) {
+        loadQuestion(newIndex);
       }
-
-      if (pageFlipInstance) pageFlipInstance.destroy();
-
-      try {
-        pageFlipInstance = new St.PageFlip(bookElement, {
-          width: 450, height: 580, size: 'stretch',
-          minWidth: 300, maxWidth: 600, minHeight: 400, maxHeight: 800,
-          maxShadowOpacity: 0.5, showCover: true, mobileScrollSupport: false
-        });
-        pageFlipInstance.loadFromHTML(bookElement.querySelectorAll('.page'));
-        pageFlipInstance.on('flip', function(e) {
-          var currentPage = e.data + 1;
-          document.getElementById('page-info').textContent = 'Trang: ' + currentPage + ' / ' + pageFlipInstance.getPageCount();
-        });
-        document.getElementById('page-info').textContent = 'Trang: 1 / ' + pageFlipInstance.getPageCount();
-      } catch (err) { console.error("Lỗi PageFlip:", err); }
     }
 
-    function nextPage() { if (pageFlipInstance) pageFlipInstance.flipNext(); }
-    function prevPage() { if (pageFlipInstance) pageFlipInstance.flipPrev(); }
+    // Khởi chạy câu đầu tiên
+    loadQuestion(0);
   </script>
 </body>
 </html>
