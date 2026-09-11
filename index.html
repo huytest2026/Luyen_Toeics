@@ -79,20 +79,21 @@
     let currentGroupIndex = 0;
     let selectedAnswers = {}; // Lưu đáp án theo số thứ tự câu { 1: 0, 2: 1, ... }
 
-    function getAudioUrl(qNum) {
-      const BASE_URL = "https://raw.githubusercontent.com/huytest2026/Luyen_Toeics/main/audios";
-      if (qNum <= 6) return `${BASE_URL}/part1/audio_${qNum}.mp3`;
-      if (qNum <= 31) return `${BASE_URL}/part2/audio_${qNum}.mp3`;
-      if (qNum <= 70) {
-        const startQ = Math.floor((qNum - 32) / 3) * 3 + 32;
-        return `${BASE_URL}/part3/audio_${startQ}.mp3`;
-      }
-      if (qNum <= 100) {
-        const startQ = Math.floor((qNum - 71) / 3) * 3 + 71;
-        return `${BASE_URL}/part4/audio_${startQ}.mp3`;
-      }
-      return "";
-    }
+   function getAudioUrl(qNum) {
+  const BASE_URL = "https://raw.githubusercontent.com/huytest2026/Luyen_Toeics/main/audios";
+  
+  if (qNum <= 6) return `${BASE_URL}/Part1/audio_${qNum}.mp3`;
+  if (qNum <= 31) return `${BASE_URL}/Part2/audio_${qNum}.mp3`;
+  if (qNum <= 70) {
+    const startQ = Math.floor((qNum - 32) / 3) * 3 + 32;
+    return `${BASE_URL}/Part3/audio_${startQ}.mp3`;
+  }
+  if (qNum <= 100) {
+    const startQ = Math.floor((qNum - 71) / 3) * 3 + 71;
+    return `${BASE_URL}/Part4/audio_${startQ}.mp3`;
+  }
+  return "";
+}
 
     document.getElementById('pdfInput').addEventListener('change', async function(e) {
       const file = e.target.files[0];
